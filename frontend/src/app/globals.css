@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 20% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 20% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 20% 15%;
+
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 96%;
+    --secondary-foreground: 224 20% 15%;
+
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 243 75% 96%;
+    --accent-foreground: 243 75% 40%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --livre: 152 60% 90%;
+    --livre-foreground: 152 60% 24%;
+
+    --ocupado: 0 70% 92%;
+    --ocupado-foreground: 0 65% 40%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 222 30% 8%;
+    --foreground: 220 20% 92%;
+
+    --card: 222 26% 11%;
+    --card-foreground: 220 20% 92%;
+
+    --popover: 222 26% 11%;
+    --popover-foreground: 220 20% 92%;
+
+    --primary: 243 75% 65%;
+    --primary-foreground: 224 30% 10%;
+
+    --secondary: 222 20% 16%;
+    --secondary-foreground: 220 20% 92%;
+
+    --muted: 222 20% 16%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 243 40% 20%;
+    --accent-foreground: 243 80% 85%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --livre: 152 40% 16%;
+    --livre-foreground: 152 55% 75%;
+
+    --ocupado: 0 45% 18%;
+    --ocupado-foreground: 0 60% 78%;
+
+    --border: 222 20% 18%;
+    --input: 222 20% 18%;
+    --ring: 243 75% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Estilos utilitários da grade do calendário (inspirado no Outlook/Google Calendar) */
+.calendario-grade {
+  display: grid;
+  grid-template-columns: 64px repeat(var(--dias, 7), 1fr);
+}
+.calendario-hora-linha {
+  border-top: 1px solid hsl(var(--border));
+  min-height: 3rem;
+}
