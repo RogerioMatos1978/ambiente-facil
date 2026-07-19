@@ -25,6 +25,19 @@ class Ambiente(models.Model):
     descricao = models.TextField(blank=True)
     foto = models.ImageField(upload_to="ambientes/", blank=True, null=True)
     ativo = models.BooleanField(default=True)
+
+    exige_checkin = models.BooleanField(
+        default=False,
+        verbose_name="Exige check-in",
+        help_text="Se marcado, reservas deste ambiente são liberadas automaticamente por no-show "
+        "quando ninguém confirma o check-in dentro da tolerância.",
+    )
+    tolerancia_checkin_minutos = models.PositiveIntegerField(
+        default=15,
+        verbose_name="Tolerância de check-in (minutos)",
+        help_text="Minutos após o início da reserva antes de liberar o ambiente automaticamente por no-show.",
+    )
+
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 

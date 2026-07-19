@@ -12,11 +12,12 @@ import { FileSpreadsheet, FileText, FileDown, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre"> = {
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre" | "outline"> = {
   confirmada: "livre",
   pendente: "secondary",
   cancelada: "destructive",
   concluida: "default",
+  expirada: "outline",
 };
 
 export default function ReservasPage() {
@@ -93,7 +94,7 @@ export default function ReservasPage() {
                   <td className="p-3">{format(new Date(r.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
                   <td className="p-3">{format(new Date(r.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
                   <td className="p-3">
-                    <Badge variant={statusVariant[r.status] ?? "default"}>{r.status}</Badge>
+                    <Badge variant={statusVariant[r.status] ?? "default"}>{r.status_display}</Badge>
                   </td>
                 </tr>
               ))}

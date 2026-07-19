@@ -26,12 +26,14 @@ export interface Ambiente {
   descricao: string;
   foto: string | null;
   ativo: boolean;
+  exige_checkin: boolean;
+  tolerancia_checkin_minutos: number;
   status_atual: "livre" | "ocupado";
   criado_em: string;
   atualizado_em: string;
 }
 
-export type StatusReserva = "pendente" | "confirmada" | "cancelada" | "concluida";
+export type StatusReserva = "pendente" | "confirmada" | "cancelada" | "concluida" | "expirada";
 
 export interface Reserva {
   id: number;
@@ -44,10 +46,14 @@ export interface Reserva {
   data_inicio: string;
   data_fim: string;
   status: StatusReserva;
+  status_display: string;
   motivo_cancelamento: string;
   cancelado_por: number | null;
   cancelado_em: string | null;
   notificar_email: boolean;
+  checkin_confirmado_em: string | null;
+  precisa_checkin: boolean;
+  prazo_checkin: string;
   criado_em: string;
   atualizado_em: string;
 }

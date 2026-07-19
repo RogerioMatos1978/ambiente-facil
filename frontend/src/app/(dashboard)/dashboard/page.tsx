@@ -4,6 +4,7 @@ import { Building2, CalendarCheck2, ClipboardList, Percent } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { PainelAmbientes } from "@/components/dashboard/painel-ambientes";
+import { ReservaRapida } from "@/components/dashboard/reserva-rapida";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { Ambiente, Reserva } from "@/types";
@@ -14,11 +15,15 @@ export default function DashboardPage() {
   const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
 
-  useEffect(() => {
+  function carregar() {
     api.get("/environments/", { params: { page_size: 100 } }).then((res) => setAmbientes(res.data.results));
     api.get("/reservations/", { params: { page_size: 200, ordering: "-data_inicio" } }).then((res) =>
       setReservas(res.data.results)
     );
+  }
+
+  useEffect(() => {
+    carregar();
   }, []);
 
   const reservasHoje = useMemo(() => reservas.filter((r) => isToday(new Date(r.data_inicio))), [reservas]);
@@ -63,7 +68,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <PainelAmbientes />
+        <div className="space-y-6">
+          <ReservaRapida aoReservar={carregar} />
+          <PainelAmbientes />
+        </div>
       </div>
     </div>
   );

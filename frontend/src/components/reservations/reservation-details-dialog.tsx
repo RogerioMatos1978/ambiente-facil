@@ -11,12 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import type { Reserva } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CheckCircle2, Clock } from "lucide-react";
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre"> = {
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre" | "outline"> = {
   confirmada: "livre",
   pendente: "secondary",
   cancelada: "destructive",
   concluida: "default",
+  expirada: "outline",
 };
 
 export function ReservationDetailsDialog({
@@ -25,6 +27,7 @@ export function ReservationDetailsDialog({
   const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
   const [cancelando, setCancelando] = useState(false);
+  const [confirmandoCheckin, setConfirmandoCheckin] = useState(false);
 
   if (!reserva) return null;
 
@@ -42,7 +45,22 @@ export function ReservationDetailsDialog({
     }
   }
 
+  async function confirmarCheckin() {
+    setConfirmandoCheckin(true);
+    try {
+      await api.post(`/reservations/${reserva!.id}/checkin/`);
+      toast({ title: "Check-in confirmado", description: "Presença registrada. A sala continua reservada para você." });
+      aoAtualizar();
+    } catch {
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível confirmar o check-in." });
+    } finally {
+      setConfirmandoCheckin(false);
+    }
+  }
+
   const podeCancel = reserva.status === "confirmada" || reserva.status === "pendente";
+  const aguardandoCheckin = reserva.precisa_checkin;
+  const checkinConfirmado = Boolean(reserva.checkin_confirmado_em);
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && aoFechar()}>
@@ -50,7 +68,7 @@ export function ReservationDetailsDialog({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>{reserva.titulo}</DialogTitle>
-            <Badge variant={statusVariant[reserva.status] ?? "default"}>{reserva.status}</Badge>
+            <Badge variant={statusVariant[reserva.status] ?? "default"}>{reserva.status_display}</Badge>
           </div>
         </DialogHeader>
 
@@ -66,6 +84,29 @@ export function ReservationDetailsDialog({
             {format(new Date(reserva.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}
           </p>
           {reserva.descricao && <p><span className="text-muted-foreground">Descrição: </span>{reserva.descricao}</p>}
+
+          {reserva.ambiente_detalhe?.exige_checkin && (
+            <div className="flex items-center gap-2 rounded-md border p-2 text-xs">
+              {checkinConfirmado ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-livre-foreground" />
+                  <span>
+                    Check-in confirmado em{" "}
+                    {format(new Date(reserva.checkin_confirmado_em as string), "dd/MM HH:mm", { locale: ptBR })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>
+                    Este ambiente exige check-in. Prazo:{" "}
+                    {format(new Date(reserva.prazo_checkin), "dd/MM HH:mm", { locale: ptBR })} — depois disso a
+                    sala é liberada automaticamente.
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {podeCancel && (
@@ -77,11 +118,19 @@ export function ReservationDetailsDialog({
 
         <DialogFooter className="flex-wrap gap-2 sm:justify-between">
           <BotaoWhatsApp reservaId={reserva.id} />
-          {podeCancel && (
-            <Button variant="destructive" onClick={cancelar} disabled={cancelando}>
-              {cancelando ? "Cancelando..." : "Cancelar reserva"}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {aguardandoCheckin && (
+              <Button onClick={confirmarCheckin} disabled={confirmandoCheckin}>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {confirmandoCheckin ? "Confirmando..." : "Confirmar check-in"}
+              </Button>
+            )}
+            {podeCancel && (
+              <Button variant="destructive" onClick={cancelar} disabled={cancelando}>
+                {cancelando ? "Cancelando..." : "Cancelar reserva"}
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

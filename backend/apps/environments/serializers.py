@@ -18,6 +18,8 @@ class AmbienteSerializer(serializers.ModelSerializer):
             "descricao",
             "foto",
             "ativo",
+            "exige_checkin",
+            "tolerancia_checkin_minutos",
             "status_atual",
             "criado_em",
             "atualizado_em",

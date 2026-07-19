@@ -18,7 +18,7 @@ export function Topbar({ titulo }: { titulo: string }) {
   const iniciais = usuario ? `${usuario.first_name?.[0] ?? ""}${usuario.last_name?.[0] ?? ""}`.toUpperCase() : "US";
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-6">
+    <header className="flex h-16 items-center justify-between border-b bg-card px-6 print:hidden">
       <h1 className="text-lg font-semibold">{titulo}</h1>
       <div className="flex items-center gap-2">
         <ThemeToggle />

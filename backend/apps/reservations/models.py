@@ -1,8 +1,9 @@
-"""Modelo de Reserva com prevenção de conflitos de horário."""
+"""Modelo de Reserva com prevenção de conflitos de horário e controle de check-in/no-show."""
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
 
@@ -11,6 +12,7 @@ class StatusReserva(models.TextChoices):
     CONFIRMADA = "confirmada", "Confirmada"
     CANCELADA = "cancelada", "Cancelada"
     CONCLUIDA = "concluida", "Concluída"
+    EXPIRADA = "expirada", "Expirada (no-show)"
 
 
 class Reserva(models.Model):
@@ -31,6 +33,15 @@ class Reserva(models.Model):
     )
     cancelado_em = models.DateTimeField(null=True, blank=True)
     notificar_email = models.BooleanField(default=True)
+
+    checkin_confirmado_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Check-in confirmado em",
+        help_text="Preenchido quando o solicitante confirma presença. Usado para liberar a sala "
+        "automaticamente em caso de no-show em ambientes que exigem check-in.",
+    )
+
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -76,3 +87,27 @@ class Reserva(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+    @property
+    def precisa_checkin(self) -> bool:
+        """True se este ambiente exige check-in e a reserva ainda está aguardando confirmação."""
+        return (
+            self.status == StatusReserva.CONFIRMADA
+            and getattr(self.ambiente, "exige_checkin", False)
+            and self.checkin_confirmado_em is None
+        )
+
+    @property
+    def prazo_checkin(self):
+        """Horário-limite para confirmar check-in antes da liberação automática por no-show."""
+        from datetime import timedelta
+
+        minutos = getattr(self.ambiente, "tolerancia_checkin_minutos", 15)
+        return self.data_inicio + timedelta(minutes=minutos)
+
+    def checkin_expirado(self, agora=None) -> bool:
+        """True se o prazo de check-in já passou e ninguém confirmou presença."""
+        if not self.precisa_checkin:
+            return False
+        agora = agora or timezone.now()
+        return agora >= self.prazo_checkin

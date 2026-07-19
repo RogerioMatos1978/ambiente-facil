@@ -21,7 +21,7 @@ export function Sidebar() {
   const isAdmin = useAuthStore((s) => s.isAdmin());
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
+    <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col print:hidden">
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
           AF

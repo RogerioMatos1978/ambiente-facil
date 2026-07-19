@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from apps.environments.models import Ambiente
 from apps.environments.serializers import AmbienteSerializer
 
 from .models import Reserva, StatusReserva
@@ -9,6 +10,9 @@ from .models import Reserva, StatusReserva
 class ReservaSerializer(serializers.ModelSerializer):
     ambiente_detalhe = AmbienteSerializer(source="ambiente", read_only=True)
     solicitante_nome = serializers.CharField(source="solicitante.get_full_name", read_only=True)
+    precisa_checkin = serializers.BooleanField(read_only=True)
+    prazo_checkin = serializers.DateTimeField(read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
         model = Reserva
@@ -23,14 +27,25 @@ class ReservaSerializer(serializers.ModelSerializer):
             "data_inicio",
             "data_fim",
             "status",
+            "status_display",
             "motivo_cancelamento",
             "cancelado_por",
             "cancelado_em",
             "notificar_email",
+            "checkin_confirmado_em",
+            "precisa_checkin",
+            "prazo_checkin",
             "criado_em",
             "atualizado_em",
         ]
-        read_only_fields = ["solicitante", "cancelado_por", "cancelado_em", "criado_em", "atualizado_em"]
+        read_only_fields = [
+            "solicitante",
+            "cancelado_por",
+            "cancelado_em",
+            "checkin_confirmado_em",
+            "criado_em",
+            "atualizado_em",
+        ]
 
     def validate(self, attrs):
         instancia = Reserva(
@@ -49,3 +64,14 @@ class ReservaSerializer(serializers.ModelSerializer):
 
 class CancelarReservaSerializer(serializers.Serializer):
     motivo = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+
+DURACOES_PERMITIDAS = (15, 30, 45, 60, 90, 120)
+
+
+class ReservaRapidaSerializer(serializers.Serializer):
+    """Fluxo de 1 clique: reserva o ambiente escolhido a partir de agora, por uma duração curta."""
+
+    ambiente = serializers.PrimaryKeyRelatedField(queryset=Ambiente.objects.filter(ativo=True))
+    duracao_minutos = serializers.ChoiceField(choices=DURACOES_PERMITIDAS, default=30)
+    titulo = serializers.CharField(max_length=200, required=False, allow_blank=True)

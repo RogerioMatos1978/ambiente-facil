@@ -32,6 +32,14 @@ auditoria completa e exportação de relatórios.
 - Testes automatizados (pytest) cobrindo conflito de horários, RBAC e autenticação.
 - Rate limiting no login e em escritas de reservas, CORS/CSRF configurados, logs rotativos.
 - CI (GitHub Actions): lint + testes do backend, type-check + lint + build do frontend, build das imagens Docker.
+- **Check-in / liberação automática por no-show**: ambientes marcados com "exige check-in" liberam a
+  reserva sozinhos se ninguém confirmar presença dentro da tolerância configurada (padrão 15 min),
+  evitando salas reservadas e vazias. Roda em segundo plano automaticamente (APScheduler), sem precisar
+  de cron externo; também pode ser disparado manualmente com `python manage.py liberar_no_show`.
+- **Reserva rápida + QR code por sala**: botão "Reservar agora" no dashboard cria uma reserva
+  instantânea (15/30/45/60/90/120 min) em 1 clique. Cada ambiente tem um QR code (`/ambientes/qrcodes`,
+  pronto para imprimir e colar na porta) que leva à página `/checkin/<id>` — mostra se a sala está
+  livre/ocupada, permite reservar na hora ou confirmar check-in pelo celular.
 
 ## Rodando localmente com Docker (recomendado)
 
@@ -55,6 +63,26 @@ O comando `seed_demo` cria dois usuários de teste:
 |-------------|--------------|----------------|
 | admin       | Admin@123    | Administrador  |
 | professor   | Usuario@123  | Usuário comum  |
+
+## Produção em rede local (intranet, sem acesso externo)
+
+Para rodar em um PC de uma rede interna, servindo os outros computadores da rede, sem domínio nem
+certificado HTTPS:
+
+```bash
+cp .env.prod.example .env
+# edite o .env: troque todo "<IP-DO-PC>" pelo IP fixo do PC que vai servir o sistema
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+- Acesso: `http://<IP-DO-PC>` (porta 80, via Nginx) — mesmo endereço para todos os PCs da rede.
+- Reserve um IP fixo para esse PC no roteador (DHCP reservation) ou configure IP estático no Windows;
+  se o IP mudar depois, o frontend precisa ser rebuildado (o endereço da API é embutido no build do
+  Next.js, não é lido em tempo de execução).
+- `DJANGO_SECRET_KEY` do `.env.prod.example` é só um placeholder — gere uma chave de verdade com
+  `python -c "import secrets; print(secrets.token_urlsafe(50))"` antes de usar em produção.
+- O backend roda com Gunicorn + worker ASGI (`uvicorn.workers.UvicornWorker`), necessário para o
+  WebSocket do painel em tempo real funcionar também em produção (não só a API REST).
 
 ## Rodando sem Docker
 
@@ -112,6 +140,27 @@ ambiente-facil/
 ├── docker-compose.yml         # desenvolvimento
 └── docker-compose.prod.yml    # produção (Nginx + Gunicorn + build otimizado)
 ```
+
+## Check-in automático e reserva rápida
+
+Dois recursos pensados para uso em rede local/intranet (sem depender de internet ou serviços externos):
+
+**Check-in / no-show.** Em cada ambiente (`Editar ambiente` no frontend, ou `exige_checkin` na API/admin),
+é possível marcar "Exige check-in" e definir a tolerância em minutos (padrão 15). Reservas nesses
+ambientes ficam com status "aguardando check-in"; se ninguém confirmar presença
+(`POST /api/v1/reservations/<id>/checkin/`) dentro da tolerância, a reserva é liberada sozinha
+(status `expirada`) por um agendador em segundo plano (APScheduler, inicia junto com o processo do
+backend — configurável via `NO_SHOW_SCHEDULER_ATIVO` e `NO_SHOW_INTERVALO_MINUTOS` no `.env`).
+Também dá para rodar manualmente: `python manage.py liberar_no_show`.
+
+**Reserva rápida + QR code.** `POST /api/v1/reservations/rapida/` cria uma reserva começando agora,
+por uma duração curta (15 a 120 min) — é o que o botão "Reservar agora" do dashboard e a página
+`/checkin/<ambiente_id>` usam. Cada ambiente expõe um QR code em
+`GET /api/v1/environments/<id>/qrcode/` (público, sem autenticação — só contém um link) apontando
+para essa página; a tela `/ambientes/qrcodes` reúne o QR code de todos os ambientes prontos para
+impressão e para colar na porta de cada sala. Requer `FRONTEND_URL` configurado corretamente no
+`.env` (endereço que os usuários realmente acessam pelo navegador) para os QR codes apontarem para
+o lugar certo.
 
 ## Arquitetura e decisões
 

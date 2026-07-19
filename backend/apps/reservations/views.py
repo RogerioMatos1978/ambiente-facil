@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -12,7 +13,7 @@ from apps.notifications.services import montar_link_whatsapp
 
 from .filters import ReservaFilter
 from .models import Reserva, StatusReserva
-from .serializers import CancelarReservaSerializer, ReservaSerializer
+from .serializers import CancelarReservaSerializer, ReservaRapidaSerializer, ReservaSerializer
 
 
 class ReservaViewSet(viewsets.ModelViewSet):
@@ -91,6 +92,76 @@ class ReservaViewSet(viewsets.ModelViewSet):
             request=request,
         )
         return Response(ReservaSerializer(reserva).data)
+
+    @action(detail=True, methods=["post"])
+    def checkin(self, request, pk=None):
+        """
+        Confirma presença na reserva (check-in). Só se aplica a ambientes com
+        `exige_checkin=True`. Enquanto não confirmado, a reserva pode ser
+        liberada automaticamente por no-show (ver management command
+        `liberar_no_show`).
+        """
+        reserva = self.get_object()
+        if reserva.status != StatusReserva.CONFIRMADA:
+            return Response(
+                {"detail": "Só é possível fazer check-in em reservas confirmadas."}, status=400
+            )
+        if reserva.checkin_confirmado_em is not None:
+            return Response({"detail": "Check-in já confirmado para esta reserva."}, status=400)
+
+        reserva.checkin_confirmado_em = timezone.now()
+        reserva.save()
+
+        registrar(
+            request.user,
+            AcaoAuditoria.ATUALIZACAO,
+            "Reserva",
+            reserva.id,
+            descricao=f"Check-in confirmado para '{reserva.titulo}'.",
+            request=request,
+        )
+        return Response(ReservaSerializer(reserva).data)
+
+    @action(detail=False, methods=["post"])
+    def rapida(self, request):
+        """
+        Reserva rápida: cria uma reserva começando agora, por uma duração
+        curta pré-definida (15/30/45/60/90/120 min) — fluxo de 1 clique
+        usado no botão "Reservar agora" do dashboard e na página de QR code.
+        """
+        serializer = ReservaRapidaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        agora = timezone.now()
+        ambiente = serializer.validated_data["ambiente"]
+        duracao = int(serializer.validated_data["duracao_minutos"])
+        titulo = serializer.validated_data.get("titulo") or (
+            f"Reserva rápida - {request.user.get_full_name() or request.user.username}"
+        )
+
+        reserva = Reserva(
+            ambiente=ambiente,
+            solicitante=request.user,
+            titulo=titulo,
+            data_inicio=agora,
+            data_fim=agora + timezone.timedelta(minutes=duracao),
+            status=StatusReserva.CONFIRMADA,
+            notificar_email=False,
+        )
+        try:
+            reserva.save()
+        except DjangoValidationError as exc:
+            return Response({"detalhes": {"conflito": exc.messages}}, status=400)
+
+        registrar(
+            request.user,
+            AcaoAuditoria.CRIACAO,
+            "Reserva",
+            reserva.id,
+            descricao=f"Reserva rápida '{reserva.titulo}' criada.",
+            request=request,
+        )
+        return Response(ReservaSerializer(reserva).data, status=201)
 
     @action(detail=True, methods=["get"])
     def whatsapp(self, request, pk=None):

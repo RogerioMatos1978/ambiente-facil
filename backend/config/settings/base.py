@@ -186,6 +186,17 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Ambiente Fácil <nore
 WHATSAPP_DEFAULT_COUNTRY_CODE = config("WHATSAPP_DEFAULT_COUNTRY_CODE", default="55")
 
 # ----------------------------------------------------------------------------
+# URL pública do frontend (usada para montar links, ex.: QR code por ambiente)
+# ----------------------------------------------------------------------------
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+
+# ----------------------------------------------------------------------------
+# Liberação automática de reservas por no-show (check-in não confirmado)
+# ----------------------------------------------------------------------------
+NO_SHOW_SCHEDULER_ATIVO = config("NO_SHOW_SCHEDULER_ATIVO", default=True, cast=bool)
+NO_SHOW_INTERVALO_MINUTOS = config("NO_SHOW_INTERVALO_MINUTOS", default=5, cast=int)
+
+# ----------------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------------
 LOGGING = {

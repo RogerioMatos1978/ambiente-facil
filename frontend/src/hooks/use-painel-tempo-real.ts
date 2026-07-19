@@ -43,9 +43,6 @@ export function usePainelTempoReal() {
 
       socket.onclose = () => {
         setConectado(false);
-        // Só tenta reconectar se o componente ainda estiver montado e o
-        // usuário ainda estiver autenticado (fechamento intencional via
-        // logout não deve gerar retries).
         if (montadoRef.current && useAuthStore.getState().accessToken) {
           reconectarTimeoutRef.current = setTimeout(conectar, RECONEXAO_MS);
         }

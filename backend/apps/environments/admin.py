@@ -5,6 +5,6 @@ from .models import Ambiente
 
 @admin.register(Ambiente)
 class AmbienteAdmin(admin.ModelAdmin):
-    list_display = ("nome", "tipo", "capacidade", "localizacao", "ativo")
-    list_filter = ("tipo", "ativo")
+    list_display = ("nome", "tipo", "capacidade", "localizacao", "ativo", "exige_checkin")
+    list_filter = ("tipo", "ativo", "exige_checkin")
     search_fields = ("nome", "localizacao")
