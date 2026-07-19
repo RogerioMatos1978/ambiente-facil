@@ -15,6 +15,19 @@ export interface Usuario {
 
 export type TipoAmbiente = "sala_aula" | "auditorio" | "laboratorio" | "sala_reuniao" | "outro";
 
+export interface ReservaResumoAmbiente {
+  id: number;
+  numero_controle: string;
+  titulo: string;
+  solicitante_nome: string;
+  reservado_para_categoria_display: string;
+  reservado_para_nome: string;
+  reservado_para_telefone: string;
+  data_inicio: string;
+  data_fim: string;
+  duracao_display: string;
+}
+
 export interface Ambiente {
   id: number;
   nome: string;
@@ -28,6 +41,7 @@ export interface Ambiente {
   exige_checkin: boolean;
   tolerancia_checkin_minutos: number;
   status_atual: "livre" | "ocupado";
+  reserva_atual: ReservaResumoAmbiente | null;
   criado_em: string;
   atualizado_em: string;
 }

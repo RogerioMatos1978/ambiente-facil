@@ -176,3 +176,31 @@ def test_reservas_ordenadas_por_numero_controle_decrescente(cliente_autenticado_
     response = cliente_autenticado_admin.get(url, {"ordering": "-id", "status": ""})
     ids = [r["id"] for r in response.data["results"]]
     assert ids.index(segunda.id) < ids.index(primeira.id)
+
+
+def test_ambiente_expoe_reserva_atual_quando_ocupado(cliente_autenticado_usuario, ambiente, usuario_comum):
+    from django.utils import timezone
+
+    from apps.reservations.models import Reserva
+
+    agora = timezone.now()
+    Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Em andamento",
+        data_inicio=agora - timedelta(minutes=10), data_fim=agora + timedelta(minutes=20),
+        reservado_para_categoria="cliente", reservado_para_nome="Fulano",
+        reservado_para_telefone="62999990000",
+    )
+    url = reverse("ambiente-detail", kwargs={"pk": ambiente.id})
+    response = cliente_autenticado_usuario.get(url)
+    assert response.status_code == 200
+    assert response.data["status_atual"] == "ocupado"
+    assert response.data["reserva_atual"]["titulo"] == "Em andamento"
+    assert response.data["reserva_atual"]["reservado_para_nome"] == "Fulano"
+
+
+def test_ambiente_reserva_atual_e_none_quando_livre(cliente_autenticado_usuario, ambiente):
+    url = reverse("ambiente-detail", kwargs={"pk": ambiente.id})
+    response = cliente_autenticado_usuario.get(url)
+    assert response.status_code == 200
+    assert response.data["status_atual"] == "livre"
+    assert response.data["reserva_atual"] is None
