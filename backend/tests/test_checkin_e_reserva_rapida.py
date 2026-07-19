@@ -207,7 +207,30 @@ def test_mensagem_e_link_whatsapp_incluem_numero_controle_e_abrem_app(ambiente, 
     mensagem = montar_mensagem_whatsapp(reserva)
     assert reserva.numero_controle in mensagem
     assert mensagem.startswith("Olá")
+    assert "retire a chave" in mensagem.lower()
+    assert "guarita" in mensagem.lower()
 
     dados = montar_link_whatsapp(reserva)
     assert dados["link"].startswith("whatsapp://send?phone=")
     assert reserva.numero_controle in dados["mensagem"]
+    # Sem reservado_para_telefone preenchido, cai para o telefone do solicitante.
+    assert dados["telefone"] == "5562999998888"
+
+
+def test_mensagem_whatsapp_vai_para_reservado_para_quando_preenchido(ambiente, usuario_comum):
+    from apps.notifications.services import montar_link_whatsapp
+
+    usuario_comum.telefone = "62999998888"
+    usuario_comum.save()
+
+    inicio = horario_futuro()
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Aula com instrutor",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+        reservado_para_categoria="instrutor", reservado_para_nome="Carlos Instrutor",
+        reservado_para_telefone="62911112222",
+    )
+
+    dados = montar_link_whatsapp(reserva)
+    assert dados["telefone"] == "5562911112222"
+    assert "Carlos Instrutor" in dados["mensagem"]

@@ -21,6 +21,8 @@ class ReservaSerializer(serializers.ModelSerializer):
     reservado_para_categoria_display = serializers.CharField(
         source="get_reservado_para_categoria_display", read_only=True
     )
+    chave_status = serializers.SerializerMethodField()
+    chave_status_display = serializers.SerializerMethodField()
     # Obrigatórios no formulário padrão de nova reserva (reserva rápida via QR code
     # preenche com valores padrão automaticamente — ver ReservaViewSet.rapida).
     reservado_para_categoria = serializers.ChoiceField(choices=CategoriaReservadoPara.choices, required=True)
@@ -45,6 +47,8 @@ class ReservaSerializer(serializers.ModelSerializer):
             "reservado_para_nome",
             "reservado_para_telefone",
             "mensagem_guarita",
+            "chave_status",
+            "chave_status_display",
             "data_inicio",
             "data_fim",
             "status",
@@ -92,6 +96,17 @@ class ReservaSerializer(serializers.ModelSerializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"conflito": exc.messages})
         return attrs
+
+    def get_chave_status(self, obj):
+        # Não precisa importar apps.keys aqui: "chave" é o related_name reverso do
+        # OneToOneField em Chave.ambiente (ver apps/keys/models.py), então dá pra
+        # acessar via getattr sem criar nenhuma dependência de import entre os apps.
+        chave = getattr(obj.ambiente, "chave", None)
+        return chave.status if chave else None
+
+    def get_chave_status_display(self, obj):
+        chave = getattr(obj.ambiente, "chave", None)
+        return chave.get_status_display() if chave else "Não cadastrada"
 
 
 class CancelarReservaSerializer(serializers.Serializer):

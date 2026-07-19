@@ -24,7 +24,7 @@ export function BotaoWhatsApp({ reservaId }: { reservaId: number }) {
         toast({
           variant: "destructive",
           title: "Telefone não cadastrado",
-          description: "O solicitante não possui telefone cadastrado para WhatsApp.",
+          description: "Nem o responsável (\"Reservado para\") nem o solicitante têm telefone cadastrado.",
         });
         return;
       }

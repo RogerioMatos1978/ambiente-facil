@@ -97,3 +97,27 @@ def test_admin_pode_editar_status_diretamente_vigilante_nao_pode(
     resp_admin = cliente_autenticado_admin.patch(url, {"status": "ocupada"}, format="json")
     assert resp_admin.status_code == 200
     assert resp_admin.data["status"] == "ocupada"
+
+
+def test_chave_e_criada_automaticamente_ao_criar_ambiente(db):
+    from apps.environments.models import Ambiente
+
+    novo_ambiente = Ambiente.objects.create(nome="Sala Nova", tipo="sala_aula", capacidade=10)
+    assert Chave.objects.filter(ambiente=novo_ambiente, status=StatusChave.DISPONIVEL).exists()
+
+
+def test_reserva_expoe_status_da_chave_do_ambiente(
+    cliente_autenticado_usuario, cliente_autenticado_vigilante, ambiente, usuario_comum
+):
+    reserva = _reserva_hoje(ambiente, usuario_comum)
+    url = reverse("reserva-detail", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_usuario.get(url)
+    assert response.status_code == 200
+    assert response.data["chave_status"] == "disponivel"
+    assert response.data["chave_status_display"] == "Disponível"
+
+    url_retirar = reverse("chave-retirar", kwargs={"ambiente_id": ambiente.id})
+    cliente_autenticado_vigilante.post(url_retirar, {"reserva": reserva.id}, format="json")
+
+    response2 = cliente_autenticado_usuario.get(url)
+    assert response2.data["chave_status"] == "ocupada"

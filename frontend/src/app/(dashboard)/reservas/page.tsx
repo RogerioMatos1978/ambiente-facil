@@ -20,6 +20,12 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "l
   expirada: "outline",
 };
 
+const chaveVariant: Record<string, "livre" | "ocupado" | "secondary" | "outline"> = {
+  disponivel: "livre",
+  ocupada: "ocupado",
+  devolvida: "secondary",
+};
+
 export default function ReservasPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -76,6 +82,7 @@ export default function ReservasPage() {
                 <th className="hidden p-3 lg:table-cell">Nº Controle</th>
                 <th className="p-3">Título</th>
                 <th className="hidden p-3 md:table-cell">Ambiente</th>
+                <th className="hidden p-3 lg:table-cell">Chave</th>
                 <th className="hidden p-3 md:table-cell">Solicitante</th>
                 <th className="p-3">Início</th>
                 <th className="hidden p-3 sm:table-cell">Fim</th>
@@ -93,6 +100,13 @@ export default function ReservasPage() {
                   <td className="hidden p-3 text-xs text-muted-foreground lg:table-cell">{r.numero_controle}</td>
                   <td className="p-3 font-medium">{r.titulo}</td>
                   <td className="hidden p-3 md:table-cell">{r.ambiente_detalhe?.nome}</td>
+                  <td className="hidden p-3 lg:table-cell">
+                    {r.chave_status ? (
+                      <Badge variant={chaveVariant[r.chave_status] ?? "outline"}>{r.chave_status_display}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="hidden p-3 md:table-cell">{r.solicitante_nome}</td>
                   <td className="whitespace-nowrap p-3">{format(new Date(r.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
                   <td className="hidden whitespace-nowrap p-3 sm:table-cell">{format(new Date(r.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
@@ -103,7 +117,7 @@ export default function ReservasPage() {
                 </tr>
               ))}
               {reservas.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Nenhuma reserva encontrada.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Nenhuma reserva encontrada.</td></tr>
               )}
             </tbody>
           </table>

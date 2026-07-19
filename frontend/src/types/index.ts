@@ -52,6 +52,8 @@ export interface Reserva {
   reservado_para_nome: string;
   reservado_para_telefone: string;
   mensagem_guarita: string;
+  chave_status: StatusChave | null;
+  chave_status_display: string;
   data_inicio: string;
   data_fim: string;
   status: StatusReserva;

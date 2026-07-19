@@ -25,12 +25,13 @@ completa e exportação de relatórios. O sistema não usa e-mail: o telefone (W
 - Qualquer usuário pode solicitar (criar) uma reserva; **editar, excluir ou cancelar reservas já existentes é exclusivo de administradores**. Reservas cujo período já terminou são concluídas automaticamente e ficam somente leitura (ver seção "Check-in automático e reserva rápida").
 - **Horário permitido: 07:00 às 22:00, no mesmo dia** — o sistema recusa reservas fora dessa janela ou que atravessem a meia-noite (validado no modelo e na API, ver `Reserva.clean()`).
 - Toda reserva exige o campo **Reservado para**: categoria (Professor, Instrutor, Cliente, Limpeza ou Manutenção) + nome e telefone de quem vai efetivamente usar a sala — pode ser diferente de quem está logado fazendo a reserva. Aparece nos detalhes da reserva, nas exportações e na mensagem da guarita (abaixo).
-- Cada reserva mostra, na tela de detalhes, uma **mensagem de instruções para a guarita**: retirar a chave ao chegar, verificar o ambiente, zelar pela conservação e devolver a chave no fim do uso (ver "Guarita de Chaves" abaixo).
+- Cada reserva mostra, na tela de detalhes, uma **mensagem de instruções para a guarita**: retirar a chave ao chegar, verificar o ambiente, zelar pela conservação e devolver a chave no fim do uso — e essa mensagem é a que vai por WhatsApp para o responsável (ver os dois itens abaixo e "Guarita de Chaves" mais adiante).
 - Cancelamento de reservas com motivo e histórico de quem cancelou.
 - Painel de ambientes livres/ocupados **em tempo real via WebSocket** (Django Channels + Redis).
 - Calendário no frontend com visões **Dia / Semana / Mês / Agenda**, inspirado no Outlook e Google Calendar.
 - Dashboard com indicadores (KPIs) e gráfico de reservas da semana.
-- Botão "Enviar WhatsApp" que monta a mensagem e abre o **aplicativo do WhatsApp instalado e logado no computador** (esquema `whatsapp://send`, não o WhatsApp Web) — requer o WhatsApp Desktop instalado na máquina que aciona o botão.
+- Botão "Enviar WhatsApp" que monta a mensagem (confirmação da reserva + instruções da guarita) e abre o **aplicativo do WhatsApp instalado e logado no computador** (esquema `whatsapp://send`, não o WhatsApp Web) — requer o WhatsApp Desktop instalado na máquina que aciona o botão. A mensagem vai para o telefone de **quem vai efetivamente usar a sala** ("Reservado para"), não para quem apenas fez a reserva no sistema — cai para o telefone do solicitante só se o do responsável não tiver sido informado (reservas antigas).
+- A lista de **Reservas** mostra também o **status da chave** do ambiente (Disponível / Ocupada / Devolvida), refletindo em tempo real o que está acontecendo na Guarita de Chaves.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
 - Exportação de reservas em **CSV, Excel (XLSX) e PDF**.

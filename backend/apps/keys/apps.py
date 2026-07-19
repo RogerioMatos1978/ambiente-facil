@@ -5,3 +5,6 @@ class KeysConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.keys"
     verbose_name = "Guarita de Chaves"
+
+    def ready(self):
+        import apps.keys.signals  # noqa: F401
