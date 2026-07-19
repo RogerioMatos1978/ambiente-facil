@@ -18,6 +18,7 @@ auditoria completa e exportação de relatórios.
 - Cadastro de ambientes (tipo, capacidade, localização, recursos, foto).
 - Cadastro de usuários (admin) com telefone para WhatsApp e departamento.
 - Reservas com **prevenção automática de conflitos de horário** (validada no modelo e na API).
+- A lista de reservas é uma **agenda compartilhada**: qualquer usuário autenticado vê todas as reservas de todos os ambientes (não só as próprias) — inclusive nas exportações e no relatório.
 - Qualquer usuário pode solicitar (criar) uma reserva; **editar, excluir ou cancelar reservas já existentes é exclusivo de administradores**. Reservas cujo período já terminou são concluídas automaticamente e ficam somente leitura (ver seção "Check-in automático e reserva rápida").
 - Cancelamento de reservas com motivo e histórico de quem cancelou.
 - Painel de ambientes livres/ocupados **em tempo real via WebSocket** (Django Channels + Redis).
@@ -28,6 +29,8 @@ auditoria completa e exportação de relatórios.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
 - Exportação de reservas em **CSV, Excel (XLSX) e PDF**.
+- Toda reserva recebe um **número de controle sequencial** (`RES-000123`, derivado do id) — aparece na mensagem de WhatsApp, no e-mail automático, na tela de detalhes e nas exportações CSV/Excel/PDF.
+- Toda reserva mostra sua **duração** (ex.: `1h30min`) — na lista de reservas, na tela de detalhes, no calendário, na página de check-in, na mensagem de WhatsApp, no e-mail automático e nas exportações CSV/Excel/PDF.
 - Página de **Relatórios** (`/relatorios`): KPIs (total, confirmadas, taxa de no-show, duração média), gráfico de reservas por dia, reservas por status, ranking de ambientes mais reservados e (para administradores) ranking de quem mais reservou — tudo filtrável por período/ambiente/status e exportável em CSV/Excel/PDF.
 - Tema claro/escuro (persistido) em todo o frontend.
 - **Seletor de cores institucionais** (ícone de paleta na barra superior): 5 temas baseados no Manual de Marcas do Sistema FIEG (SESI/SENAI/IEL Goiás, ago/2024). O padrão "SESI SENAI" usa o azul institucional `#164194`; os temas SESI (`#52AE32` verde), SENAI (`#E84910` laranja), IEL (`#6CC2BA` verde-água) e Sistema FIEG (`#008BD2` azul claro) trocam a cor dominante do sistema inteiro (botões, menu ativo, badges, foco) para essa cor de detalhe da marca escolhida. Funciona em conjunto com o tema claro/escuro e a escolha fica salva no navegador.

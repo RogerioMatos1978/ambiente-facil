@@ -37,6 +37,9 @@ export type StatusReserva = "pendente" | "confirmada" | "cancelada" | "concluida
 
 export interface Reserva {
   id: number;
+  numero_controle: string;
+  duracao_horas: number;
+  duracao_display: string;
   ambiente: number;
   ambiente_detalhe: Ambiente;
   solicitante: number;

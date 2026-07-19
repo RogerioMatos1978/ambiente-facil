@@ -188,3 +188,24 @@ def test_concluir_reservas_passadas_marca_como_concluida(ambiente, usuario_comum
     futura.refresh_from_db()
     assert passada.status == StatusReserva.CONCLUIDA
     assert futura.status == StatusReserva.CONFIRMADA
+
+
+def test_mensagem_e_link_whatsapp_incluem_numero_controle_e_abrem_app(ambiente, usuario_comum):
+    from apps.notifications.services import montar_link_whatsapp, montar_mensagem_whatsapp
+
+    usuario_comum.telefone = "62999998888"
+    usuario_comum.save()
+
+    inicio = timezone.now() + timedelta(hours=1)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+
+    mensagem = montar_mensagem_whatsapp(reserva)
+    assert reserva.numero_controle in mensagem
+    assert mensagem.startswith("Olá")
+
+    dados = montar_link_whatsapp(reserva)
+    assert dados["link"].startswith("whatsapp://send?phone=")
+    assert reserva.numero_controle in dados["mensagem"]

@@ -80,10 +80,11 @@ export function ReservationDetailsDialog({
     <Dialog open={aberto} onOpenChange={(v) => !v && aoFechar()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DialogTitle>{reserva.titulo}</DialogTitle>
             <Badge variant={statusVariant[reserva.status] ?? "default"}>{reserva.status_display}</Badge>
           </div>
+          <p className="text-xs text-muted-foreground">Nº de controle: {reserva.numero_controle}</p>
         </DialogHeader>
 
         <div className="space-y-2 text-sm">
@@ -97,6 +98,7 @@ export function ReservationDetailsDialog({
             <span className="text-muted-foreground">Fim: </span>
             {format(new Date(reserva.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}
           </p>
+          <p><span className="text-muted-foreground">Duração: </span>{reserva.duracao_display}</p>
           {reserva.descricao && <p><span className="text-muted-foreground">Descrição: </span>{reserva.descricao}</p>}
 
           {reserva.ambiente_detalhe?.exige_checkin && (

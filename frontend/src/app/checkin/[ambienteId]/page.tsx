@@ -136,7 +136,7 @@ export default function CheckinAmbientePage() {
               <p className="text-muted-foreground">{reservaAtual.solicitante_nome}</p>
               <p className="text-muted-foreground">
                 {format(new Date(reservaAtual.data_inicio), "dd/MM HH:mm", { locale: ptBR })} —{" "}
-                {format(new Date(reservaAtual.data_fim), "dd/MM HH:mm", { locale: ptBR })}
+                {format(new Date(reservaAtual.data_fim), "dd/MM HH:mm", { locale: ptBR })} ({reservaAtual.duracao_display})
               </p>
 
               {reservaAtual.checkin_confirmado_em && (

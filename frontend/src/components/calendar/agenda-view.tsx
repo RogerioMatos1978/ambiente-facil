@@ -30,7 +30,8 @@ export function AgendaView({ reservas, aoClicarReserva }: { reservas: Reserva[];
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{r.titulo}</p>
             <p className="truncate text-xs text-muted-foreground">
-              {format(new Date(r.data_inicio), "EEEE, dd/MM/yyyy HH:mm", { locale: ptBR })} · {r.ambiente_detalhe?.nome}
+              {format(new Date(r.data_inicio), "EEEE, dd/MM/yyyy HH:mm", { locale: ptBR })} · {r.ambiente_detalhe?.nome} ·{" "}
+              {r.duracao_display}
             </p>
           </div>
           <Badge variant={statusVariant[r.status] ?? "default"}>{r.status_display}</Badge>

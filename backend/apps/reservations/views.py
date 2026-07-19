@@ -37,16 +37,18 @@ class ReservaViewSet(viewsets.ModelViewSet):
     throttle_scope = "reservations-write"
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        if self.request.user.is_admin:
-            return qs
-        return qs.filter(solicitante=self.request.user)
+        # A agenda de reservas é compartilhada: qualquer usuário autenticado vê a lista
+        # completa (todos os ambientes, todas as pessoas) — inclusive em exportações e no
+        # relatório. Isso não amplia quem pode alterar algo: editar, excluir e cancelar
+        # continuam exclusivos de administradores (ver get_permissions), e o check-in
+        # continua exclusivo do próprio solicitante ou de um admin (ver a action checkin).
+        return super().get_queryset()
 
     def get_permissions(self):
         """
-        Criar, listar e visualizar reservas fica aberto a qualquer usuário autenticado
-        (o escopo por dono já é aplicado em get_queryset). Editar, excluir ou cancelar uma
-        reserva existente é privilégio exclusivo de administradores.
+        Criar, listar e visualizar reservas fica aberto a qualquer usuário autenticado.
+        Editar, excluir ou cancelar uma reserva existente é privilégio exclusivo de
+        administradores.
         """
         if self.action in {"update", "partial_update", "destroy", "cancelar"}:
             return [IsAuthenticated(), IsAdmin()]
@@ -136,6 +138,11 @@ class ReservaViewSet(viewsets.ModelViewSet):
         `liberar_no_show`).
         """
         reserva = self.get_object()
+        if not (request.user.is_admin or reserva.solicitante_id == request.user.id):
+            return Response(
+                {"detail": "Só o solicitante da reserva (ou um administrador) pode confirmar o check-in."},
+                status=403,
+            )
         if reserva.status != StatusReserva.CONFIRMADA:
             return Response(
                 {"detail": "Só é possível fazer check-in em reservas confirmadas."}, status=400
@@ -292,15 +299,19 @@ class ReservaViewSet(viewsets.ModelViewSet):
     def exportar(self, request, formato=None):
         """Exporta a lista de reservas filtrada (mesmos filtros da listagem) em CSV, Excel ou PDF."""
         queryset = self.filter_queryset(self.get_queryset())
-        cabecalhos = ["ID", "Título", "Ambiente", "Solicitante", "Início", "Fim", "Status"]
+        cabecalhos = [
+            "Nº Controle", "ID", "Título", "Ambiente", "Solicitante", "Início", "Fim", "Duração", "Status",
+        ]
         linhas = [
             [
+                r.numero_controle,
                 r.id,
                 r.titulo,
                 r.ambiente.nome,
                 r.solicitante.get_full_name(),
                 r.data_inicio.strftime("%d/%m/%Y %H:%M"),
                 r.data_fim.strftime("%d/%m/%Y %H:%M"),
+                r.duracao_display,
                 r.get_status_display(),
             ]
             for r in queryset

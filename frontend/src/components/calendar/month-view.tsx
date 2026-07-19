@@ -54,7 +54,7 @@ export function MonthView({
                       aoClicarReserva(r);
                     }}
                     className="truncate rounded bg-primary/10 px-1 py-0.5 text-[11px] text-primary hover:bg-primary/20"
-                    title={r.titulo}
+                    title={`${r.titulo} · ${r.duracao_display}`}
                   >
                     {format(new Date(r.data_inicio), "HH:mm")} {r.titulo}
                   </span>

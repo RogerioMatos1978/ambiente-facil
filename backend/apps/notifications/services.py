@@ -59,10 +59,12 @@ def montar_mensagem_whatsapp(reserva) -> str:
     """Monta o texto da mensagem de WhatsApp para confirmação/lembrete de uma reserva."""
     return (
         f"Olá {reserva.solicitante.get_full_name()}! Confirmando sua reserva no *Ambiente Fácil*:\n"
+        f"Nº de controle: {reserva.numero_controle}\n"
         f"Ambiente: {reserva.ambiente.nome}\n"
         f"Título: {reserva.titulo}\n"
         f"Início: {reserva.data_inicio:%d/%m/%Y %H:%M}\n"
         f"Fim: {reserva.data_fim:%d/%m/%Y %H:%M}\n"
+        f"Duração: {reserva.duracao_display}\n"
         f"Status: {reserva.get_status_display()}"
     )
 

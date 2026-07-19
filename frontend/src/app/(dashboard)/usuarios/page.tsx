@@ -17,11 +17,26 @@ const vazio = {
   telefone: "", departamento: "", password: "",
 };
 
+function extrairMensagemErro(err: unknown): string {
+  interface ErroApi {
+    response?: { data?: { detalhes?: Record<string, string[] | string> | string } };
+  }
+  const detalhes = (err as ErroApi)?.response?.data?.detalhes;
+  if (!detalhes) return "Não foi possível criar o usuário. Verifique os dados informados.";
+  if (typeof detalhes === "string") return detalhes;
+  const mensagens = Object.entries(detalhes).flatMap(([campo, valor]) => {
+    const lista = Array.isArray(valor) ? valor : [valor];
+    return lista.map((msg) => `${campo}: ${msg}`);
+  });
+  return mensagens.join(" ") || "Não foi possível criar o usuário. Verifique os dados informados.";
+}
+
 export default function UsuariosPage() {
   const { toast } = useToast();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [form, setForm] = useState(vazio);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function carregar() {
     const { data } = await api.get("/users/", { params: { page_size: 100 } });
@@ -34,14 +49,17 @@ export default function UsuariosPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    setErro(null);
     try {
       await api.post("/users/", form);
       toast({ title: "Usuário criado com sucesso" });
       setDialogAberto(false);
       setForm(vazio);
       carregar();
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao criar usuário", description: "Verifique os dados (usuário/e-mail podem já existir)." });
+    } catch (err: unknown) {
+      const mensagem = extrairMensagemErro(err);
+      setErro(mensagem);
+      toast({ variant: "destructive", title: "Erro ao criar usuário", description: mensagem });
     }
   }
 
@@ -83,7 +101,16 @@ export default function UsuariosPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+      <Dialog
+        open={dialogAberto}
+        onOpenChange={(v) => {
+          setDialogAberto(v);
+          if (!v) {
+            setErro(null);
+            setForm(vazio);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader><DialogTitle>Novo usuário</DialogTitle></DialogHeader>
           <form onSubmit={salvar} className="space-y-4">
@@ -91,7 +118,11 @@ export default function UsuariosPage() {
               <div className="space-y-2"><Label>Nome</Label><Input required value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Sobrenome</Label><Input value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} /></div>
             </div>
-            <div className="space-y-2"><Label>Usuário (login)</Label><Input required value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} /></div>
+            <div className="space-y-2">
+              <Label>Usuário (login)</Label>
+              <Input required value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">Sem espaços ou acentos — apenas letras, números e . _ + -/@ (ex.: joao.silva).</p>
+            </div>
             <div className="space-y-2"><Label>E-mail</Label><Input type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2"><Label>Telefone (WhatsApp)</Label><Input placeholder="5511999999999" value={form.telefone} onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))} /></div>
@@ -107,7 +138,20 @@ export default function UsuariosPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Senha inicial</Label><Input type="password" required value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} /></div>
+            <div className="space-y-2">
+              <Label>Senha inicial</Label>
+              <Input type="password" required value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">
+                Mínimo de 8 caracteres, não pode ser só números nem uma senha muito comum (ex.: 12345678, senha123).
+              </p>
+            </div>
+
+            {erro && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                {erro}
+              </div>
+            )}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogAberto(false)}>Cancelar</Button>
               <Button type="submit">Criar usuário</Button>

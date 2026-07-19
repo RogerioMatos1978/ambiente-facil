@@ -59,6 +59,36 @@ class Reserva(models.Model):
     def __str__(self):
         return f"{self.titulo} - {self.ambiente} ({self.data_inicio:%d/%m/%Y %H:%M})"
 
+    @property
+    def numero_controle(self) -> str:
+        """
+        Número de controle sequencial da reserva, usado como referência única em
+        mensagens (WhatsApp/e-mail) e relatórios. Deriva diretamente do id (que já
+        é sequencial e único no banco), formatado como RES-000123.
+        """
+        return f"RES-{self.id:06d}" if self.id else ""
+
+    @property
+    def duracao_horas(self) -> float:
+        """Duração da reserva em horas (com casas decimais), ex.: 1.5 para 1h30min."""
+        if not (self.data_inicio and self.data_fim):
+            return 0.0
+        segundos = (self.data_fim - self.data_inicio).total_seconds()
+        return round(segundos / 3600, 2)
+
+    @property
+    def duracao_display(self) -> str:
+        """Duração formatada de forma legível: '1h', '1h30min' ou '45min'."""
+        if not (self.data_inicio and self.data_fim):
+            return ""
+        total_minutos = int((self.data_fim - self.data_inicio).total_seconds() // 60)
+        horas, minutos = divmod(total_minutos, 60)
+        if horas and minutos:
+            return f"{horas}h{minutos:02d}min"
+        if horas:
+            return f"{horas}h"
+        return f"{minutos}min"
+
     def clean(self):
         if self.data_inicio and self.data_fim and self.data_fim <= self.data_inicio:
             raise ValidationError("A data/hora de término deve ser posterior à de início.")

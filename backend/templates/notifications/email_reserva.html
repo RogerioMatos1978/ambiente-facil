@@ -6,10 +6,12 @@
   <p>Olá {{ reserva.solicitante.get_full_name }},</p>
   <p>Sua reserva foi <strong>{{ evento }}</strong>:</p>
   <table style="border-collapse: collapse;">
+    <tr><td style="padding:4px 8px;"><strong>Nº de controle</strong></td><td style="padding:4px 8px;">{{ reserva.numero_controle }}</td></tr>
     <tr><td style="padding:4px 8px;"><strong>Título</strong></td><td style="padding:4px 8px;">{{ reserva.titulo }}</td></tr>
     <tr><td style="padding:4px 8px;"><strong>Ambiente</strong></td><td style="padding:4px 8px;">{{ reserva.ambiente.nome }}</td></tr>
     <tr><td style="padding:4px 8px;"><strong>Início</strong></td><td style="padding:4px 8px;">{{ reserva.data_inicio }}</td></tr>
     <tr><td style="padding:4px 8px;"><strong>Fim</strong></td><td style="padding:4px 8px;">{{ reserva.data_fim }}</td></tr>
+    <tr><td style="padding:4px 8px;"><strong>Duração</strong></td><td style="padding:4px 8px;">{{ reserva.duracao_display }}</td></tr>
     <tr><td style="padding:4px 8px;"><strong>Status</strong></td><td style="padding:4px 8px;">{{ reserva.get_status_display }}</td></tr>
   </table>
   <p style="margin-top:16px; font-size:12px; color:#6b7280;">Esta é uma mensagem automática do sistema Ambiente Fácil.</p>

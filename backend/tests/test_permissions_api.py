@@ -33,9 +33,11 @@ def test_admin_pode_criar_ambiente(cliente_autenticado_admin):
     assert response.status_code == 201
 
 
-def test_usuario_ve_apenas_suas_proprias_reservas(
+def test_usuario_comum_ve_a_lista_completa_de_reservas(
     cliente_autenticado_usuario, cliente_autenticado_admin, ambiente, usuario_comum, admin_user
 ):
+    """A agenda é compartilhada: todo usuário autenticado vê todas as reservas (de todo
+    mundo), não só as próprias. Só editar/excluir/cancelar continua restrito a admin."""
     from apps.reservations.models import Reserva
 
     inicio = timezone.now() + timedelta(hours=1)
@@ -56,7 +58,7 @@ def test_usuario_ve_apenas_suas_proprias_reservas(
 
     url = reverse("reserva-list")
     resposta_usuario = cliente_autenticado_usuario.get(url)
-    assert resposta_usuario.data["count"] == 1
+    assert resposta_usuario.data["count"] == 2
 
     resposta_admin = cliente_autenticado_admin.get(url)
     assert resposta_admin.data["count"] == 2
@@ -158,3 +160,24 @@ def test_cancelar_reserva_com_periodo_ja_encerrado_e_bloqueado(
     url = reverse("reserva-cancelar", kwargs={"pk": reserva.id})
     response = cliente_autenticado_admin.post(url, {}, format="json")
     assert response.status_code == 400
+
+
+def test_outro_usuario_nao_pode_fazer_checkin_em_reserva_alheia(
+    cliente_autenticado_usuario, ambiente, admin_user
+):
+    """A lista de reservas ficou aberta a todos, mas check-in continua exclusivo do
+    próprio solicitante (ou admin) — não pode virar 'qualquer um confirma por qualquer um'."""
+    from apps.environments.models import Ambiente
+    from apps.reservations.models import Reserva
+
+    ambiente_com_checkin = Ambiente.objects.create(
+        nome="Sala com check-in", tipo="sala_aula", capacidade=10, exige_checkin=True
+    )
+    inicio = timezone.now() - timedelta(minutes=1)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente_com_checkin, solicitante=admin_user, titulo="Reunião do admin",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+    url = reverse("reserva-checkin", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_usuario.post(url, {}, format="json")
+    assert response.status_code == 403

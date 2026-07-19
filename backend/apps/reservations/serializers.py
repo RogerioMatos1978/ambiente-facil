@@ -11,6 +11,9 @@ from .models import Reserva, StatusReserva
 class ReservaSerializer(serializers.ModelSerializer):
     ambiente_detalhe = AmbienteSerializer(source="ambiente", read_only=True)
     solicitante_nome = serializers.CharField(source="solicitante.get_full_name", read_only=True)
+    numero_controle = serializers.CharField(read_only=True)
+    duracao_horas = serializers.FloatField(read_only=True)
+    duracao_display = serializers.CharField(read_only=True)
     precisa_checkin = serializers.BooleanField(read_only=True)
     prazo_checkin = serializers.DateTimeField(read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -19,6 +22,9 @@ class ReservaSerializer(serializers.ModelSerializer):
         model = Reserva
         fields = [
             "id",
+            "numero_controle",
+            "duracao_horas",
+            "duracao_display",
             "ambiente",
             "ambiente_detalhe",
             "solicitante",

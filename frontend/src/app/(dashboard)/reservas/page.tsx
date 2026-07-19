@@ -73,11 +73,13 @@ export default function ReservasPage() {
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="hidden p-3 lg:table-cell">Nº Controle</th>
                 <th className="p-3">Título</th>
                 <th className="hidden p-3 md:table-cell">Ambiente</th>
                 <th className="hidden p-3 md:table-cell">Solicitante</th>
                 <th className="p-3">Início</th>
                 <th className="hidden p-3 sm:table-cell">Fim</th>
+                <th className="hidden p-3 sm:table-cell">Duração</th>
                 <th className="p-3">Status</th>
               </tr>
             </thead>
@@ -88,18 +90,20 @@ export default function ReservasPage() {
                   onClick={() => setSelecionada(r)}
                   className="cursor-pointer border-b last:border-0 hover:bg-accent/40"
                 >
+                  <td className="hidden p-3 text-xs text-muted-foreground lg:table-cell">{r.numero_controle}</td>
                   <td className="p-3 font-medium">{r.titulo}</td>
                   <td className="hidden p-3 md:table-cell">{r.ambiente_detalhe?.nome}</td>
                   <td className="hidden p-3 md:table-cell">{r.solicitante_nome}</td>
                   <td className="whitespace-nowrap p-3">{format(new Date(r.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
                   <td className="hidden whitespace-nowrap p-3 sm:table-cell">{format(new Date(r.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
+                  <td className="hidden whitespace-nowrap p-3 sm:table-cell">{r.duracao_display}</td>
                   <td className="p-3">
                     <Badge variant={statusVariant[r.status] ?? "default"}>{r.status_display}</Badge>
                   </td>
                 </tr>
               ))}
               {reservas.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma reserva encontrada.</td></tr>
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Nenhuma reserva encontrada.</td></tr>
               )}
             </tbody>
           </table>

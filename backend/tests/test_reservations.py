@@ -69,3 +69,40 @@ def test_data_fim_antes_do_inicio_invalida(ambiente, usuario_comum):
     fim = inicio - timedelta(hours=1)
     with pytest.raises(ValidationError):
         _reserva(ambiente, usuario_comum, inicio, fim).save()
+
+
+def test_numero_controle_formatado_a_partir_do_id(ambiente, usuario_comum):
+    inicio = timezone.now() + timedelta(hours=1)
+    reserva = _reserva(ambiente, usuario_comum, inicio, inicio + timedelta(hours=1))
+    reserva.save()
+    assert reserva.numero_controle == f"RES-{reserva.id:06d}"
+
+
+def test_numero_controle_vazio_sem_id():
+    from apps.reservations.models import Reserva
+
+    reserva = Reserva()
+    assert reserva.numero_controle == ""
+
+
+def test_duracao_horas_e_display(ambiente, usuario_comum):
+    inicio = timezone.now() + timedelta(hours=1)
+
+    reserva_1h30 = _reserva(ambiente, usuario_comum, inicio, inicio + timedelta(hours=1, minutes=30))
+    reserva_1h30.save()
+    assert reserva_1h30.duracao_horas == 1.5
+    assert reserva_1h30.duracao_display == "1h30min"
+
+    reserva_2h = _reserva(
+        ambiente, usuario_comum, inicio + timedelta(hours=3), inicio + timedelta(hours=5)
+    )
+    reserva_2h.save()
+    assert reserva_2h.duracao_horas == 2.0
+    assert reserva_2h.duracao_display == "2h"
+
+    reserva_45min = _reserva(
+        ambiente, usuario_comum, inicio + timedelta(hours=6), inicio + timedelta(hours=6, minutes=45)
+    )
+    reserva_45min.save()
+    assert reserva_45min.duracao_horas == 0.75
+    assert reserva_45min.duracao_display == "45min"
