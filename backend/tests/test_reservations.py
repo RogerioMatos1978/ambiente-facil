@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.reservations.models import Reserva, StatusReserva
+from .utils_tempo import horario_futuro
 
 pytestmark = pytest.mark.django_db
 
@@ -23,7 +24,7 @@ def _reserva(ambiente, solicitante, inicio, fim, **kwargs):
 
 
 def test_criacao_reserva_valida(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     fim = inicio + timedelta(hours=2)
     reserva = _reserva(ambiente, usuario_comum, inicio, fim)
     reserva.save()
@@ -32,7 +33,7 @@ def test_criacao_reserva_valida(ambiente, usuario_comum):
 
 
 def test_conflito_de_horario_impede_nova_reserva(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     fim = inicio + timedelta(hours=2)
     _reserva(ambiente, usuario_comum, inicio, fim).save()
 
@@ -42,7 +43,7 @@ def test_conflito_de_horario_impede_nova_reserva(ambiente, usuario_comum):
 
 
 def test_reservas_nao_sobrepostas_sao_permitidas(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     fim = inicio + timedelta(hours=2)
     _reserva(ambiente, usuario_comum, inicio, fim).save()
 
@@ -52,7 +53,7 @@ def test_reservas_nao_sobrepostas_sao_permitidas(ambiente, usuario_comum):
 
 
 def test_reserva_cancelada_nao_gera_conflito(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     fim = inicio + timedelta(hours=2)
     primeira = _reserva(ambiente, usuario_comum, inicio, fim)
     primeira.save()
@@ -65,14 +66,14 @@ def test_reserva_cancelada_nao_gera_conflito(ambiente, usuario_comum):
 
 
 def test_data_fim_antes_do_inicio_invalida(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=2)
+    inicio = horario_futuro()
     fim = inicio - timedelta(hours=1)
     with pytest.raises(ValidationError):
         _reserva(ambiente, usuario_comum, inicio, fim).save()
 
 
 def test_numero_controle_formatado_a_partir_do_id(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     reserva = _reserva(ambiente, usuario_comum, inicio, inicio + timedelta(hours=1))
     reserva.save()
     assert reserva.numero_controle == f"RES-{reserva.id:06d}"
@@ -86,7 +87,7 @@ def test_numero_controle_vazio_sem_id():
 
 
 def test_duracao_horas_e_display(ambiente, usuario_comum):
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
 
     reserva_1h30 = _reserva(ambiente, usuario_comum, inicio, inicio + timedelta(hours=1, minutes=30))
     reserva_1h30.save()
@@ -118,7 +119,7 @@ def test_filtro_data_de_ate_inclui_reservas_que_cruzam_a_janela(
 
     from apps.reservations.models import Reserva
 
-    base = timezone.now().replace(minute=0, second=0, microsecond=0) + timedelta(days=1)
+    base = horario_futuro()
 
     cruza_inicio_da_janela = Reserva.objects.create(
         ambiente=ambiente, solicitante=admin_user, titulo="Começa antes, termina dentro",

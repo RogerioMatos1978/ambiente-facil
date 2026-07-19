@@ -6,6 +6,8 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from .utils_tempo import horario_futuro, horario_passado
+
 pytestmark = pytest.mark.django_db
 
 
@@ -40,7 +42,7 @@ def test_usuario_comum_ve_a_lista_completa_de_reservas(
     mundo), não só as próprias. Só editar/excluir/cancelar continua restrito a admin."""
     from apps.reservations.models import Reserva
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     Reserva.objects.create(
         ambiente=ambiente,
         solicitante=usuario_comum,
@@ -67,7 +69,7 @@ def test_usuario_comum_ve_a_lista_completa_de_reservas(
 def test_conflito_de_horario_via_api(cliente_autenticado_usuario, ambiente, usuario_comum):
     from apps.reservations.models import Reserva
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     Reserva.objects.create(
         ambiente=ambiente,
         solicitante=usuario_comum,
@@ -81,6 +83,9 @@ def test_conflito_de_horario_via_api(cliente_autenticado_usuario, ambiente, usua
         "titulo": "Reunião conflitante",
         "data_inicio": (inicio + timedelta(minutes=30)).isoformat(),
         "data_fim": (inicio + timedelta(hours=3)).isoformat(),
+        "reservado_para_categoria": "cliente",
+        "reservado_para_nome": "Fulano de Tal",
+        "reservado_para_telefone": "62999990000",
     }
     response = cliente_autenticado_usuario.post(url, payload, format="json")
     assert response.status_code == 400
@@ -90,7 +95,7 @@ def test_conflito_de_horario_via_api(cliente_autenticado_usuario, ambiente, usua
 def test_usuario_comum_nao_pode_cancelar_propria_reserva(cliente_autenticado_usuario, ambiente, usuario_comum):
     from apps.reservations.models import Reserva
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     reserva = Reserva.objects.create(
         ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
@@ -105,7 +110,7 @@ def test_admin_pode_cancelar_reserva_de_qualquer_usuario(
 ):
     from apps.reservations.models import Reserva, StatusReserva
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     reserva = Reserva.objects.create(
         ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
@@ -120,7 +125,7 @@ def test_admin_pode_cancelar_reserva_de_qualquer_usuario(
 def test_usuario_comum_nao_pode_editar_propria_reserva(cliente_autenticado_usuario, ambiente, usuario_comum):
     from apps.reservations.models import Reserva
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     reserva = Reserva.objects.create(
         ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
@@ -133,7 +138,7 @@ def test_usuario_comum_nao_pode_editar_propria_reserva(cliente_autenticado_usuar
 def test_admin_nao_pode_editar_reserva_concluida(cliente_autenticado_admin, ambiente, admin_user):
     from apps.reservations.models import Reserva, StatusReserva
 
-    inicio = timezone.now() - timedelta(hours=3)
+    inicio = horario_passado()
     reserva = Reserva.objects.create(
         ambiente=ambiente, solicitante=admin_user, titulo="Reunião passada",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1), status=StatusReserva.CONCLUIDA,
@@ -152,7 +157,7 @@ def test_cancelar_reserva_com_periodo_ja_encerrado_e_bloqueado(
 ):
     from apps.reservations.models import Reserva, StatusReserva
 
-    inicio = timezone.now() - timedelta(hours=3)
+    inicio = horario_passado()
     reserva = Reserva.objects.create(
         ambiente=ambiente, solicitante=admin_user, titulo="Reunião passada",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1), status=StatusReserva.CONFIRMADA,
@@ -173,7 +178,7 @@ def test_outro_usuario_nao_pode_fazer_checkin_em_reserva_alheia(
     ambiente_com_checkin = Ambiente.objects.create(
         nome="Sala com check-in", tipo="sala_aula", capacidade=10, exige_checkin=True
     )
-    inicio = timezone.now() - timedelta(minutes=1)
+    inicio = horario_passado()
     reserva = Reserva.objects.create(
         ambiente=ambiente_com_checkin, solicitante=admin_user, titulo="Reunião do admin",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1),

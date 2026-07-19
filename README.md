@@ -18,10 +18,14 @@ completa e exportação de relatórios. O sistema não usa e-mail: o telefone (W
 - Autenticação JWT com dois perfis (Administrador e Usuário) e permissões RBAC em cada endpoint.
 - Cadastro de ambientes (tipo, capacidade, localização, recursos, foto).
 - Cadastro de usuários (admin) com telefone (WhatsApp, obrigatório — único contato do usuário; não há campo de e-mail no sistema) e departamento.
+- Três perfis de usuário: **Administrador** (acesso total), **Usuário** (solicita reservas, vê a agenda) e **Vigilante** (acesso restrito só à Guarita de Chaves — não enxerga dashboard, calendário, reservas, ambientes, usuários nem auditoria, nem pela tela nem pela API).
 - Reservas com **prevenção automática de conflitos de horário** (validada no modelo e na API).
 - A lista de reservas é uma **agenda compartilhada**: qualquer usuário autenticado vê todas as reservas de todos os ambientes (não só as próprias) — inclusive nas exportações e no relatório.
 - O filtro de período (`data_de`/`data_ate`, usado no calendário, no relatório e nas exportações) considera reservas que **se sobrepõem** à janela pesquisada, não só as totalmente contidas nela — corrige um bug em que reservas que cruzavam o início/fim do período filtrado somem do calendário.
 - Qualquer usuário pode solicitar (criar) uma reserva; **editar, excluir ou cancelar reservas já existentes é exclusivo de administradores**. Reservas cujo período já terminou são concluídas automaticamente e ficam somente leitura (ver seção "Check-in automático e reserva rápida").
+- **Horário permitido: 07:00 às 22:00, no mesmo dia** — o sistema recusa reservas fora dessa janela ou que atravessem a meia-noite (validado no modelo e na API, ver `Reserva.clean()`).
+- Toda reserva exige o campo **Reservado para**: categoria (Professor, Instrutor, Cliente, Limpeza ou Manutenção) + nome e telefone de quem vai efetivamente usar a sala — pode ser diferente de quem está logado fazendo a reserva. Aparece nos detalhes da reserva, nas exportações e na mensagem da guarita (abaixo).
+- Cada reserva mostra, na tela de detalhes, uma **mensagem de instruções para a guarita**: retirar a chave ao chegar, verificar o ambiente, zelar pela conservação e devolver a chave no fim do uso (ver "Guarita de Chaves" abaixo).
 - Cancelamento de reservas com motivo e histórico de quem cancelou.
 - Painel de ambientes livres/ocupados **em tempo real via WebSocket** (Django Channels + Redis).
 - Calendário no frontend com visões **Dia / Semana / Mês / Agenda**, inspirado no Outlook e Google Calendar.
@@ -73,10 +77,11 @@ docker compose exec backend python manage.py seed_demo
 
 O comando `seed_demo` cria dois usuários de teste:
 
-| Usuário     | Senha        | Perfil         |
-|-------------|--------------|----------------|
-| admin       | Admin@123    | Administrador  |
-| professor   | Usuario@123  | Usuário comum  |
+| Usuário     | Senha          | Perfil         |
+|-------------|----------------|----------------|
+| admin       | Admin@123      | Administrador  |
+| professor   | Usuario@123    | Usuário comum  |
+| vigilante   | Vigilante@123  | Vigilante (só Guarita de Chaves) |
 
 ## Produção em rede local (intranet, sem acesso externo)
 
@@ -142,6 +147,7 @@ ambiente-facil/
 │   │   ├── reservations/    # reservas + prevenção de conflitos
 │   │   ├── audit/           # logs de auditoria
 │   │   ├── notifications/   # mensagem/link do WhatsApp
+│   │   ├── keys/            # Guarita de Chaves (admin + vigilante)
 │   │   └── common/          # permissões, exportações, middleware, exceções
 │   ├── config/               # settings (base/dev/test/prod), urls, asgi/wsgi
 │   └── tests/
@@ -185,6 +191,26 @@ para essa página; a tela `/ambientes/qrcodes` reúne o QR code de todos os ambi
 impressão e para colar na porta de cada sala. Requer `FRONTEND_URL` configurado corretamente no
 `.env` (endereço que os usuários realmente acessam pelo navegador) para os QR codes apontarem para
 o lugar certo.
+
+## Guarita de Chaves
+
+Controle físico da chave de cada ambiente, pensado para a portaria/guarita de uma unidade
+SESI/SENAI: uma chave por ambiente (provisionada automaticamente), com três estados —
+**disponível → ocupada → devolvida → disponível de novo** — sempre amarrada à reserva do dia
+correspondente, não um controle solto.
+
+- **Acesso**: administrador (vê e altera tudo) e o novo perfil **Vigilante** (retira, devolve e
+  repõe chaves). Usuário comum não tem acesso — nem pela tela (`/guarita-chaves` não aparece no
+  menu), nem pela API (`IsAdminOuVigilante`, ver `apps/keys/views.py`). O vigilante, por sua vez,
+  só enxerga essa tela: todo o resto do sistema (dashboard, calendário, reservas, ambientes,
+  relatórios) é bloqueado tanto na navegação quanto na API (`apps.common.permissions.NaoEhVigilante`).
+- **Fluxo**: a tela lista cada ambiente com as reservas do dia; retirar a chave exige escolher a
+  reserva correspondente (`POST /api/v1/guarita/chaves/<ambiente_id>/retirar/`), devolver marca o
+  fim do uso (`.../devolver/`) e repor confere e deixa disponível para a próxima reserva
+  (`.../repor/`). Toda ação fica registrada na auditoria.
+- **Mensagem da guarita**: a tela de detalhes de qualquer reserva mostra as instruções para quem
+  vai usar a sala — retirar a chave na guarita ao chegar, verificar o ambiente, zelar pela
+  conservação e devolver a chave ao final (`Reserva.mensagem_guarita`).
 
 ## Arquitetura e decisões
 

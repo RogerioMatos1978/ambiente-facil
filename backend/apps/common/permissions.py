@@ -37,3 +37,16 @@ class IsOwnerOrAdmin(BasePermission):
             return True
         owner = getattr(obj, "usuario", None) or getattr(obj, "solicitante", None)
         return owner == request.user
+
+
+class NaoEhVigilante(BasePermission):
+    """
+    Bloqueia o perfil Vigilante (acesso restrito só à Guarita de Chaves, ver apps.keys)
+    de qualquer outro recurso do sistema — reservas, ambientes, relatórios etc. Combine
+    com outra permissão (ex.: `permission_classes = [IsAuthenticated, NaoEhVigilante]`).
+    """
+
+    message = "Este perfil não tem acesso a este recurso."
+
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and not request.user.is_vigilante)

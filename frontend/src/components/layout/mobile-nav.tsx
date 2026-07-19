@@ -18,7 +18,7 @@ import { NavIcon } from "./nav-icon";
 export function MobileNav() {
   const [aberto, setAberto] = useState(false);
   const pathname = usePathname();
-  const isAdmin = useAuthStore((s) => s.isAdmin());
+  const papel = useAuthStore((s) => s.usuario?.papel);
 
   return (
     <DialogPrimitive.Root open={aberto} onOpenChange={setAberto}>
@@ -52,7 +52,7 @@ export function MobileNav() {
           </div>
           <nav className="flex-1 space-y-1 p-3">
             {itensNavegacao
-              .filter((item) => !item.adminOnly || isAdmin)
+              .filter((item) => papel && item.visivelPara.includes(papel))
               .map((item) => {
                 const ativo = pathname?.startsWith(item.href);
                 const Icone = item.icone;

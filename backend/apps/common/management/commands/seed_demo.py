@@ -49,6 +49,20 @@ class Command(BaseCommand):
             usuario.save()
             self.stdout.write(self.style.SUCCESS("Usuário professor/Usuario@123 criado."))
 
+        vigilante, criado = User.objects.get_or_create(
+            username="vigilante",
+            defaults=dict(
+                papel="vigilante",
+                first_name="Zé",
+                last_name="da Guarita",
+                telefone="5511955550000",
+            ),
+        )
+        if criado:
+            vigilante.set_password("Vigilante@123")
+            vigilante.save()
+            self.stdout.write(self.style.SUCCESS("Usuário vigilante/Vigilante@123 criado."))
+
         ambientes_dados = [
             ("Sala 101", TipoAmbiente.SALA_AULA, "Bloco A - 1º andar", 40, ["Projetor", "Quadro branco"]),
             ("Auditório Central", TipoAmbiente.AUDITORIO, "Bloco B - Térreo", 200, ["Som", "Projetor", "Palco"]),
@@ -74,18 +88,36 @@ class Command(BaseCommand):
             )
             ambientes.append(amb)
 
-        agora = timezone.now().replace(minute=0, second=0, microsecond=0)
+        # Horário fixo (9h) para as reservas de exemplo — evita que o comando quebre
+        # dependendo da hora em que é rodado (reservas só podem ir de 07:00 às 22:00,
+        # no mesmo dia — ver Reserva.clean()).
+        agora = timezone.localtime().replace(hour=9, minute=0, second=0, microsecond=0)
         exemplos = [
-            (ambientes[0], "Aula de Redes de Computadores", agora + timedelta(hours=2), 2),
-            (ambientes[1], "Palestra de Boas-Vindas", agora + timedelta(days=1, hours=1), 3),
-            (ambientes[2], "Oficina de Python", agora + timedelta(days=2), 4),
+            (
+                ambientes[0], "Aula de Redes de Computadores", agora + timedelta(hours=2), 2,
+                "professor", "Ana Professora", "5511988880000",
+            ),
+            (
+                ambientes[1], "Palestra de Boas-Vindas", agora + timedelta(days=1, hours=1), 3,
+                "cliente", "Convidados Especiais", "5511977770000",
+            ),
+            (
+                ambientes[2], "Oficina de Python", agora + timedelta(days=2), 4,
+                "instrutor", "Carlos Instrutor", "5511966660000",
+            ),
         ]
-        for ambiente, titulo, inicio, horas in exemplos:
+        for ambiente, titulo, inicio, horas, categoria, nome_reservado, telefone_reservado in exemplos:
             Reserva.objects.get_or_create(
                 ambiente=ambiente,
                 titulo=titulo,
                 data_inicio=inicio,
-                defaults=dict(solicitante=usuario, data_fim=inicio + timedelta(hours=horas)),
+                defaults=dict(
+                    solicitante=usuario,
+                    data_fim=inicio + timedelta(hours=horas),
+                    reservado_para_categoria=categoria,
+                    reservado_para_nome=nome_reservado,
+                    reservado_para_telefone=telefone_reservado,
+                ),
             )
 
         self.stdout.write(self.style.SUCCESS("Dados de demonstração criados com sucesso."))

@@ -1,10 +1,15 @@
 """Modelo de Reserva com prevenção de conflitos de horário e controle de check-in/no-show."""
 
+from datetime import time
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
+
+HORARIO_MINIMO_RESERVA = time(7, 0)
+HORARIO_MAXIMO_RESERVA = time(22, 0)
 
 
 class StatusReserva(models.TextChoices):
@@ -13,6 +18,17 @@ class StatusReserva(models.TextChoices):
     CANCELADA = "cancelada", "Cancelada"
     CONCLUIDA = "concluida", "Concluída"
     EXPIRADA = "expirada", "Expirada (no-show)"
+
+
+class CategoriaReservadoPara(models.TextChoices):
+    """Para quem/qual finalidade a sala está sendo reservada — diferente do solicitante
+    (que é sempre o usuário logado que está fazendo a reserva no sistema)."""
+
+    PROFESSOR = "professor", "Professor"
+    INSTRUTOR = "instrutor", "Instrutor"
+    CLIENTE = "cliente", "Cliente"
+    LIMPEZA = "limpeza", "Limpeza"
+    MANUTENCAO = "manutencao", "Manutenção"
 
 
 class Reserva(models.Model):
@@ -32,6 +48,17 @@ class Reserva(models.Model):
         related_name="reservas_canceladas",
     )
     cancelado_em = models.DateTimeField(null=True, blank=True)
+
+    # Para quem a sala está sendo reservada (pode ser diferente de quem está logado
+    # fazendo a reserva) — obrigatório no formulário padrão de nova reserva (ver
+    # ReservaSerializer), usado na mensagem da guarita e nos relatórios/exportações.
+    reservado_para_categoria = models.CharField(
+        max_length=20, choices=CategoriaReservadoPara.choices, blank=True, verbose_name="Reservado para"
+    )
+    reservado_para_nome = models.CharField(max_length=150, blank=True, verbose_name="Nome de quem vai usar a sala")
+    reservado_para_telefone = models.CharField(
+        max_length=20, blank=True, verbose_name="Telefone de quem vai usar a sala"
+    )
 
     checkin_confirmado_em = models.DateTimeField(
         null=True,
@@ -88,9 +115,38 @@ class Reserva(models.Model):
             return f"{horas}h"
         return f"{minutos}min"
 
+    @property
+    def mensagem_guarita(self) -> str:
+        """
+        Instruções para quem vai usar a sala, exibidas na tela de detalhes da reserva:
+        retirar a chave na guarita, conferir o ambiente, zelar por ele e devolver a
+        chave ao final. Ver também apps.keys (Guarita Chaves), que controla o status
+        físico da chave em si.
+        """
+        if not (self.ambiente_id and self.data_inicio and self.data_fim):
+            return ""
+        nome_responsavel = self.reservado_para_nome or self.solicitante.get_full_name() or self.solicitante.username
+        return (
+            f"{nome_responsavel}, ao chegar, retire a chave da sala \"{self.ambiente.nome}\" na guarita "
+            f"(reserva {self.numero_controle}, das {timezone.localtime(self.data_inicio):%H:%M} às "
+            f"{timezone.localtime(self.data_fim):%H:%M}). Verifique as condições do ambiente antes de "
+            f"usar, zele pela conservação do espaço e dos equipamentos, e devolva a chave na guarita "
+            f"assim que a reserva terminar."
+        )
+
     def clean(self):
         if self.data_inicio and self.data_fim and self.data_fim <= self.data_inicio:
             raise ValidationError("A data/hora de término deve ser posterior à de início.")
+        if self.data_inicio and self.data_fim:
+            inicio_local = timezone.localtime(self.data_inicio)
+            fim_local = timezone.localtime(self.data_fim)
+            if inicio_local.date() != fim_local.date():
+                raise ValidationError("A reserva deve começar e terminar no mesmo dia.")
+            if inicio_local.time() < HORARIO_MINIMO_RESERVA or fim_local.time() > HORARIO_MAXIMO_RESERVA:
+                raise ValidationError(
+                    f"Reservas só podem ser feitas entre {HORARIO_MINIMO_RESERVA:%H:%M} "
+                    f"e {HORARIO_MAXIMO_RESERVA:%H:%M}."
+                )
         if self.status in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA):
             conflitos = self.conflitos_existentes()
             if conflitos.exists():

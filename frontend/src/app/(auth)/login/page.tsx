@@ -27,7 +27,8 @@ function LoginForm() {
       const { data } = await api.post("/auth/login/", { username, password });
       setTokens(data.access, data.refresh);
       setUsuario(data.usuario);
-      const destino = searchParams.get("next") || "/dashboard";
+      const padrao = data.usuario?.papel === "vigilante" ? "/guarita-chaves" : "/dashboard";
+      const destino = searchParams.get("next") || padrao;
       router.push(destino);
     } catch {
       toast({

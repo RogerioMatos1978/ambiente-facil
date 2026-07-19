@@ -8,7 +8,7 @@ import { NavIcon } from "./nav-icon";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const isAdmin = useAuthStore((s) => s.isAdmin());
+  const papel = useAuthStore((s) => s.usuario?.papel);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col print:hidden">
@@ -20,7 +20,7 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {itensNavegacao
-          .filter((item) => !item.adminOnly || isAdmin)
+          .filter((item) => papel && item.visivelPara.includes(papel))
           .map((item) => {
             const ativo = pathname?.startsWith(item.href);
             const Icone = item.icone;

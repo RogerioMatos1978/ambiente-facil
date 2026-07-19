@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/v1/", include("apps.reservations.urls")),
     path("api/v1/", include("apps.audit.urls")),
     path("api/v1/", include("apps.common.urls")),
+    path("api/v1/", include("apps.keys.urls")),
     # Documentação OpenAPI / Swagger
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

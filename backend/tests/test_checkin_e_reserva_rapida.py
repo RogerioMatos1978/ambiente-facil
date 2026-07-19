@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from apps.reservations.models import Reserva, StatusReserva
 
+from .utils_tempo import horario_futuro, horario_passado
+
 pytestmark = pytest.mark.django_db
 
 
@@ -125,7 +127,7 @@ def test_relatorio_retorna_resumo_e_series(cliente_autenticado_admin, ambiente, 
 
     from apps.reservations.models import Reserva, StatusReserva
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     Reserva.objects.create(
         ambiente=ambiente,
         solicitante=admin_user,
@@ -171,12 +173,12 @@ def test_concluir_reservas_passadas_marca_como_concluida(ambiente, usuario_comum
 
     from apps.reservations.models import Reserva, StatusReserva
 
-    inicio = timezone.now() - timedelta(hours=3)
+    inicio = horario_passado()
     passada = Reserva.objects.create(
         ambiente=ambiente, solicitante=usuario_comum, titulo="Aula encerrada",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
     )
-    futura_inicio = timezone.now() + timedelta(hours=1)
+    futura_inicio = horario_futuro()
     futura = Reserva.objects.create(
         ambiente=ambiente, solicitante=usuario_comum, titulo="Aula futura",
         data_inicio=futura_inicio, data_fim=futura_inicio + timedelta(hours=1),
@@ -196,7 +198,7 @@ def test_mensagem_e_link_whatsapp_incluem_numero_controle_e_abrem_app(ambiente, 
     usuario_comum.telefone = "62999998888"
     usuario_comum.save()
 
-    inicio = timezone.now() + timedelta(hours=1)
+    inicio = horario_futuro()
     reserva = Reserva.objects.create(
         ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
         data_inicio=inicio, data_fim=inicio + timedelta(hours=1),

@@ -1,4 +1,4 @@
-export type Papel = "admin" | "user";
+export type Papel = "admin" | "user" | "vigilante";
 
 export interface Usuario {
   id: number;
@@ -34,6 +34,8 @@ export interface Ambiente {
 
 export type StatusReserva = "pendente" | "confirmada" | "cancelada" | "concluida" | "expirada";
 
+export type ReservadoParaCategoria = "professor" | "instrutor" | "cliente" | "limpeza" | "manutencao";
+
 export interface Reserva {
   id: number;
   numero_controle: string;
@@ -45,6 +47,11 @@ export interface Reserva {
   solicitante_nome: string;
   titulo: string;
   descricao: string;
+  reservado_para_categoria: ReservadoParaCategoria | "";
+  reservado_para_categoria_display: string;
+  reservado_para_nome: string;
+  reservado_para_telefone: string;
+  mensagem_guarita: string;
   data_inicio: string;
   data_fim: string;
   status: StatusReserva;
@@ -125,5 +132,40 @@ export type EstiloIcone = "padrao" | "contornado" | "preenchido";
 
 export interface ConfiguracaoSistema {
   estilo_icone: EstiloIcone;
+  atualizado_em: string;
+}
+
+export type StatusChave = "disponivel" | "ocupada" | "devolvida";
+
+export interface ReservaResumoGuarita {
+  id: number;
+  numero_controle: string;
+  titulo: string;
+  solicitante_nome: string;
+  data_inicio: string;
+  data_fim: string;
+  duracao_display: string;
+  status: StatusReserva;
+  status_display: string;
+  reservado_para_categoria: ReservadoParaCategoria | "";
+  reservado_para_categoria_display: string;
+  reservado_para_nome: string;
+  reservado_para_telefone: string;
+}
+
+export interface Chave {
+  id: number;
+  ambiente: number;
+  ambiente_nome: string;
+  ambiente_localizacao: string;
+  status: StatusChave;
+  status_display: string;
+  reserva_atual: number | null;
+  reserva_atual_detalhe: ReservaResumoGuarita | null;
+  retirada_em: string | null;
+  retirada_por: number | null;
+  retirada_por_nome: string | null;
+  devolvida_em: string | null;
+  reservas_hoje: ReservaResumoGuarita[];
   atualizado_em: string;
 }

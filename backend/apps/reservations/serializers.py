@@ -5,7 +5,7 @@ from rest_framework import serializers
 from apps.environments.models import Ambiente
 from apps.environments.serializers import AmbienteSerializer
 
-from .models import Reserva, StatusReserva
+from .models import CategoriaReservadoPara, Reserva, StatusReserva
 
 
 class ReservaSerializer(serializers.ModelSerializer):
@@ -17,6 +17,15 @@ class ReservaSerializer(serializers.ModelSerializer):
     precisa_checkin = serializers.BooleanField(read_only=True)
     prazo_checkin = serializers.DateTimeField(read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    mensagem_guarita = serializers.CharField(read_only=True)
+    reservado_para_categoria_display = serializers.CharField(
+        source="get_reservado_para_categoria_display", read_only=True
+    )
+    # Obrigatórios no formulário padrão de nova reserva (reserva rápida via QR code
+    # preenche com valores padrão automaticamente — ver ReservaViewSet.rapida).
+    reservado_para_categoria = serializers.ChoiceField(choices=CategoriaReservadoPara.choices, required=True)
+    reservado_para_nome = serializers.CharField(max_length=150, required=True, allow_blank=False)
+    reservado_para_telefone = serializers.CharField(max_length=20, required=True, allow_blank=False)
 
     class Meta:
         model = Reserva
@@ -31,6 +40,11 @@ class ReservaSerializer(serializers.ModelSerializer):
             "solicitante_nome",
             "titulo",
             "descricao",
+            "reservado_para_categoria",
+            "reservado_para_categoria_display",
+            "reservado_para_nome",
+            "reservado_para_telefone",
+            "mensagem_guarita",
             "data_inicio",
             "data_fim",
             "status",

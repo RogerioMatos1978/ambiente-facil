@@ -23,6 +23,13 @@ def usuario_comum(db):
 
 
 @pytest.fixture
+def vigilante_user(db):
+    return User.objects.create_user(
+        username="vigilante", telefone="62977770000", password="SenhaForte123", papel="vigilante"
+    )
+
+
+@pytest.fixture
 def cliente_autenticado_admin(admin_user):
     client = APIClient()
     client.force_authenticate(user=admin_user)
@@ -33,6 +40,13 @@ def cliente_autenticado_admin(admin_user):
 def cliente_autenticado_usuario(usuario_comum):
     client = APIClient()
     client.force_authenticate(user=usuario_comum)
+    return client
+
+
+@pytest.fixture
+def cliente_autenticado_vigilante(vigilante_user):
+    client = APIClient()
+    client.force_authenticate(user=vigilante_user)
     return client
 
 

@@ -7,7 +7,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 
-from apps.common.permissions import IsAdminOrReadOnly
+from apps.common.permissions import IsAdminOrReadOnly, NaoEhVigilante
 
 from .models import Ambiente
 from .serializers import AmbienteSerializer
@@ -18,7 +18,7 @@ class AmbienteViewSet(viewsets.ModelViewSet):
 
     queryset = Ambiente.objects.all()
     serializer_class = AmbienteSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly, NaoEhVigilante]
     filterset_fields = ["tipo", "ativo", "localizacao"]
     search_fields = ["nome", "localizacao", "descricao"]
     ordering_fields = ["nome", "capacidade", "criado_em"]

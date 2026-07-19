@@ -11,11 +11,11 @@ from rest_framework.response import Response
 from apps.audit.models import AcaoAuditoria, registrar
 from apps.common.exceptions import exception_handler  # noqa: F401 (garante import cedo)
 from apps.common.exports import exportar_csv, exportar_pdf, exportar_xlsx
-from apps.common.permissions import IsAdmin
+from apps.common.permissions import IsAdmin, NaoEhVigilante
 from apps.notifications.services import montar_link_whatsapp
 
 from .filters import ReservaFilter
-from .models import Reserva, StatusReserva
+from .models import CategoriaReservadoPara, Reserva, StatusReserva
 from .serializers import CancelarReservaSerializer, ReservaRapidaSerializer, ReservaSerializer
 
 
@@ -30,7 +30,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
     queryset = Reserva.objects.select_related("ambiente", "solicitante").all()
     serializer_class = ReservaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, NaoEhVigilante]
     filterset_class = ReservaFilter
     search_fields = ["titulo", "descricao", "ambiente__nome"]
     ordering_fields = ["data_inicio", "data_fim", "criado_em"]
@@ -52,7 +52,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         """
         if self.action in {"update", "partial_update", "destroy", "cancelar"}:
             return [IsAuthenticated(), IsAdmin()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), NaoEhVigilante()]
 
     def perform_create(self, serializer):
         reserva = serializer.save(solicitante=self.request.user)
@@ -187,6 +187,12 @@ class ReservaViewSet(viewsets.ModelViewSet):
             data_inicio=agora,
             data_fim=agora + timezone.timedelta(minutes=duracao),
             status=StatusReserva.CONFIRMADA,
+            # Reserva rápida (QR code) é um fluxo de 1 clique: preenche "reservado para"
+            # com os dados de quem está fazendo a reserva, para não travar a agilidade
+            # do fluxo com um formulário extra — pode ser ajustado depois por um admin.
+            reservado_para_categoria=CategoriaReservadoPara.CLIENTE,
+            reservado_para_nome=request.user.get_full_name() or request.user.username,
+            reservado_para_telefone=request.user.telefone,
         )
         try:
             reserva.save()
@@ -299,7 +305,8 @@ class ReservaViewSet(viewsets.ModelViewSet):
         """Exporta a lista de reservas filtrada (mesmos filtros da listagem) em CSV, Excel ou PDF."""
         queryset = self.filter_queryset(self.get_queryset())
         cabecalhos = [
-            "Nº Controle", "ID", "Título", "Ambiente", "Solicitante", "Início", "Fim", "Duração", "Status",
+            "Nº Controle", "ID", "Título", "Ambiente", "Solicitante", "Reservado para",
+            "Nome (reservado para)", "Telefone (reservado para)", "Início", "Fim", "Duração", "Status",
         ]
         linhas = [
             [
@@ -308,6 +315,9 @@ class ReservaViewSet(viewsets.ModelViewSet):
                 r.titulo,
                 r.ambiente.nome,
                 r.solicitante.get_full_name(),
+                r.get_reservado_para_categoria_display(),
+                r.reservado_para_nome,
+                r.reservado_para_telefone,
                 r.data_inicio.strftime("%d/%m/%Y %H:%M"),
                 r.data_fim.strftime("%d/%m/%Y %H:%M"),
                 r.duracao_display,

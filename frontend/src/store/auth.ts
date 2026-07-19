@@ -11,6 +11,7 @@ interface AuthState {
   setUsuario: (usuario: Usuario) => void;
   logout: () => void;
   isAdmin: () => boolean;
+  isVigilante: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,6 +24,7 @@ export const useAuthStore = create<AuthState>()(
       setUsuario: (usuario) => set({ usuario }),
       logout: () => set({ accessToken: null, refreshToken: null, usuario: null }),
       isAdmin: () => get().usuario?.papel === "admin",
+      isVigilante: () => get().usuario?.papel === "vigilante",
     }),
     { name: "ambiente-facil-auth" }
   )

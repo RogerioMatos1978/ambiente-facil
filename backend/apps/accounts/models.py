@@ -44,6 +44,7 @@ class UserManager(BaseUserManager):
 class Papel(models.TextChoices):
     ADMINISTRADOR = "admin", "Administrador"
     USUARIO = "user", "Usuário"
+    VIGILANTE = "vigilante", "Vigilante"
 
 
 class User(AbstractUser):
@@ -100,6 +101,16 @@ class User(AbstractUser):
     @property
     def is_admin(self) -> bool:
         return self.papel == Papel.ADMINISTRADOR or self.is_superuser
+
+    @property
+    def is_vigilante(self) -> bool:
+        """
+        Perfil restrito: só tem acesso à página/API da Guarita de Chaves (ver
+        apps.keys). Não enxerga dashboard, calendário, reservas, ambientes, usuários
+        nem auditoria — nem pelo frontend (nav escondida), nem pela API
+        (ver apps.common.permissions.NaoEhVigilante).
+        """
+        return self.papel == Papel.VIGILANTE
 
     @property
     def whatsapp_e164(self) -> str:

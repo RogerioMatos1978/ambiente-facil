@@ -12,7 +12,7 @@ import { useAuthStore } from "@/store/auth";
 import type { Reserva } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock } from "lucide-react";
+import { CheckCircle2, Clock, KeyRound } from "lucide-react";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre" | "outline"> = {
   confirmada: "livre",
@@ -99,7 +99,20 @@ export function ReservationDetailsDialog({
             {format(new Date(reserva.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}
           </p>
           <p><span className="text-muted-foreground">Duração: </span>{reserva.duracao_display}</p>
+          {reserva.reservado_para_categoria && (
+            <p>
+              <span className="text-muted-foreground">Reservado para: </span>
+              {reserva.reservado_para_categoria_display} — {reserva.reservado_para_nome} ({reserva.reservado_para_telefone})
+            </p>
+          )}
           {reserva.descricao && <p><span className="text-muted-foreground">Descrição: </span>{reserva.descricao}</p>}
+
+          {reserva.mensagem_guarita && (
+            <div className="flex gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-xs">
+              <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p>{reserva.mensagem_guarita}</p>
+            </div>
+          )}
 
           {reserva.ambiente_detalhe?.exige_checkin && (
             <div className="flex items-center gap-2 rounded-md border p-2 text-xs">
