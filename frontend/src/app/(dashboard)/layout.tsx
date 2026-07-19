@@ -1,22 +1,31 @@
 "use client";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useConfiguracaoSistemaStore } from "@/store/configuracao-sistema";
 
 const titulos: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/calendario": "Calendário de Reservas",
   "/reservas": "Reservas",
+  "/relatorios": "Relatórios",
   "/ambientes": "Ambientes",
   "/usuarios": "Usuários",
   "/auditoria": "Auditoria",
+  "/configuracoes": "Configurações",
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pronto = useAuthGuard();
   const pathname = usePathname();
   const titulo = Object.entries(titulos).find(([rota]) => pathname?.startsWith(rota))?.[1] ?? "Ambiente Fácil";
+  const carregarConfiguracaoSistema = useConfiguracaoSistemaStore((s) => s.carregar);
+
+  useEffect(() => {
+    if (pronto) carregarConfiguracaoSistema();
+  }, [pronto, carregarConfiguracaoSistema]);
 
   if (!pronto) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando...</div>;

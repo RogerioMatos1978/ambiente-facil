@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 import { itensNavegacao } from "./nav-items";
+import { NavIcon } from "./nav-icon";
 
 /**
  * Navegação para telas pequenas: botão de menu (hambúrguer) que abre uma
@@ -65,7 +66,7 @@ export function MobileNav() {
                       ativo ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
-                    <Icone className="h-4 w-4" />
+                    <NavIcon icone={Icone} ativo={ativo} />
                     {item.label}
                   </Link>
                 );

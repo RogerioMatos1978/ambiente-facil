@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 import { itensNavegacao } from "./nav-items";
+import { NavIcon } from "./nav-icon";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -32,7 +33,7 @@ export function Sidebar() {
                   ativo ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <Icone className="h-4 w-4" />
+                <NavIcon icone={Icone} ativo={ativo} />
                 {item.label}
               </Link>
             );

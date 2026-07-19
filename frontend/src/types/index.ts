@@ -120,3 +120,10 @@ export interface RelatorioReservas {
   por_ambiente: RelatorioPorAmbiente[];
   por_solicitante: RelatorioPorSolicitante[];
 }
+
+export type EstiloIcone = "padrao" | "contornado" | "preenchido";
+
+export interface ConfiguracaoSistema {
+  estilo_icone: EstiloIcone;
+  atualizado_em: string;
+}

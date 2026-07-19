@@ -1,5 +1,6 @@
 import {
-  LayoutDashboard, CalendarDays, Building2, ClipboardList, Users, ShieldCheck, BarChart3, type LucideIcon,
+  LayoutDashboard, CalendarDays, Building2, ClipboardList, Users, ShieldCheck, BarChart3, Settings,
+  type LucideIcon,
 } from "lucide-react";
 
 export interface ItemNavegacao {
@@ -17,4 +18,5 @@ export const itensNavegacao: ItemNavegacao[] = [
   { href: "/ambientes", label: "Ambientes", icone: Building2, adminOnly: false },
   { href: "/usuarios", label: "Usuários", icone: Users, adminOnly: true },
   { href: "/auditoria", label: "Auditoria", icone: ShieldCheck, adminOnly: true },
+  { href: "/configuracoes", label: "Configurações", icone: Settings, adminOnly: true },
 ];
