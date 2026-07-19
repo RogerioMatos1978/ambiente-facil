@@ -1,4 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -168,6 +170,91 @@ class ReservaViewSet(viewsets.ModelViewSet):
         """Retorna telefone, mensagem e link wa.me prontos para o botão 'Enviar WhatsApp' do frontend."""
         reserva = self.get_object()
         return Response(montar_link_whatsapp(reserva))
+
+    @action(detail=False, methods=["get"])
+    def relatorio(self, request):
+        """
+        Relatório agregado de reservas: KPIs (total, por status, taxa de no-show,
+        duração média), série de reservas por dia e rankings por ambiente e por
+        solicitante (este último só para administradores). Aceita os mesmos
+        filtros da listagem (ambiente, solicitante, status, data_de, data_ate).
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+
+        total = queryset.count()
+        status_labels = dict(StatusReserva.choices)
+        por_status = [
+            {
+                "status": item["status"],
+                "status_display": status_labels.get(item["status"], item["status"]),
+                "total": item["total"],
+            }
+            for item in queryset.values("status").annotate(total=Count("id")).order_by("-total")
+        ]
+
+        confirmadas = queryset.filter(status=StatusReserva.CONFIRMADA).count()
+        canceladas = queryset.filter(status=StatusReserva.CANCELADA).count()
+        concluidas = queryset.filter(status=StatusReserva.CONCLUIDA).count()
+        pendentes = queryset.filter(status=StatusReserva.PENDENTE).count()
+        expiradas = queryset.filter(status=StatusReserva.EXPIRADA).count()
+
+        base_no_show = confirmadas + concluidas + expiradas
+        taxa_no_show = round((expiradas / base_no_show) * 100, 1) if base_no_show else 0.0
+
+        duracao_media = queryset.annotate(
+            duracao=ExpressionWrapper(F("data_fim") - F("data_inicio"), output_field=DurationField())
+        ).aggregate(media=Avg("duracao"))["media"]
+        duracao_media_minutos = round(duracao_media.total_seconds() / 60) if duracao_media else 0
+
+        por_dia = [
+            {"dia": item["dia"].isoformat(), "total": item["total"]}
+            for item in queryset.annotate(dia=TruncDate("data_inicio"))
+            .values("dia")
+            .annotate(total=Count("id"))
+            .order_by("dia")
+        ]
+
+        por_ambiente = [
+            {"ambiente_id": item["ambiente_id"], "ambiente_nome": item["ambiente__nome"], "total": item["total"]}
+            for item in queryset.values("ambiente_id", "ambiente__nome").annotate(total=Count("id")).order_by("-total")[:10]
+        ]
+
+        por_solicitante = []
+        if request.user.is_admin:
+            solicitantes_qs = (
+                queryset.values(
+                    "solicitante_id", "solicitante__first_name", "solicitante__last_name", "solicitante__username"
+                )
+                .annotate(total=Count("id"))
+                .order_by("-total")[:10]
+            )
+            for item in solicitantes_qs:
+                nome = (
+                    f"{item['solicitante__first_name']} {item['solicitante__last_name']}".strip()
+                    or item["solicitante__username"]
+                )
+                por_solicitante.append(
+                    {"solicitante_id": item["solicitante_id"], "solicitante_nome": nome, "total": item["total"]}
+                )
+
+        return Response(
+            {
+                "resumo": {
+                    "total": total,
+                    "confirmadas": confirmadas,
+                    "canceladas": canceladas,
+                    "concluidas": concluidas,
+                    "pendentes": pendentes,
+                    "expiradas": expiradas,
+                    "taxa_no_show": taxa_no_show,
+                    "duracao_media_minutos": duracao_media_minutos,
+                },
+                "por_status": por_status,
+                "por_dia": por_dia,
+                "por_ambiente": por_ambiente,
+                "por_solicitante": por_solicitante,
+            }
+        )
 
     @action(detail=False, methods=["get"], url_path="exportar/(?P<formato>csv|xlsx|pdf)")
     def exportar(self, request, formato=None):

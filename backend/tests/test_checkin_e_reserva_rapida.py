@@ -118,3 +118,49 @@ def test_qrcode_retorna_imagem_png_sem_autenticacao(api_client, ambiente):
     resposta = api_client.get(f"/api/v1/environments/{ambiente.id}/qrcode/")
     assert resposta.status_code == 200
     assert resposta["Content-Type"] == "image/png"
+
+
+def test_relatorio_retorna_resumo_e_series(cliente_autenticado_admin, ambiente, admin_user):
+    from django.urls import reverse
+
+    from apps.reservations.models import Reserva, StatusReserva
+
+    inicio = timezone.now() + timedelta(hours=1)
+    Reserva.objects.create(
+        ambiente=ambiente,
+        solicitante=admin_user,
+        titulo="Reunião 1",
+        data_inicio=inicio,
+        data_fim=inicio + timedelta(hours=1),
+    )
+    Reserva.objects.create(
+        ambiente=ambiente,
+        solicitante=admin_user,
+        titulo="Reunião 2",
+        data_inicio=inicio + timedelta(hours=2),
+        data_fim=inicio + timedelta(hours=3),
+        status=StatusReserva.CANCELADA,
+    )
+
+    url = reverse("reserva-relatorio")
+    response = cliente_autenticado_admin.get(url)
+
+    assert response.status_code == 200
+    dados = response.data
+    assert dados["resumo"]["total"] == 2
+    assert dados["resumo"]["confirmadas"] == 1
+    assert dados["resumo"]["canceladas"] == 1
+    assert len(dados["por_dia"]) >= 1
+    assert len(dados["por_ambiente"]) == 1
+    assert dados["por_ambiente"][0]["total"] == 2
+    assert len(dados["por_solicitante"]) == 1
+
+
+def test_relatorio_usuario_comum_nao_ve_solicitantes(cliente_autenticado_usuario):
+    from django.urls import reverse
+
+    url = reverse("reserva-relatorio")
+    response = cliente_autenticado_usuario.get(url)
+
+    assert response.status_code == 200
+    assert response.data["por_solicitante"] == []

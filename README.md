@@ -27,6 +27,7 @@ auditoria completa e exportação de relatórios.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
 - Exportação de reservas em **CSV, Excel (XLSX) e PDF**.
+- Página de **Relatórios** (`/relatorios`): KPIs (total, confirmadas, taxa de no-show, duração média), gráfico de reservas por dia, reservas por status, ranking de ambientes mais reservados e (para administradores) ranking de quem mais reservou — tudo filtrável por período/ambiente/status e exportável em CSV/Excel/PDF.
 - Tema claro/escuro (persistido) em todo o frontend.
 - API documentada com OpenAPI/Swagger (`/api/docs`) e Redoc (`/api/redoc`).
 - Testes automatizados (pytest) cobrindo conflito de horários, RBAC e autenticação.

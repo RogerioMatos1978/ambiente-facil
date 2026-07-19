@@ -77,3 +77,45 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+export interface ResumoRelatorio {
+  total: number;
+  confirmadas: number;
+  canceladas: number;
+  concluidas: number;
+  pendentes: number;
+  expiradas: number;
+  taxa_no_show: number;
+  duracao_media_minutos: number;
+}
+
+export interface RelatorioPorDia {
+  dia: string;
+  total: number;
+}
+
+export interface RelatorioPorStatus {
+  status: StatusReserva;
+  status_display: string;
+  total: number;
+}
+
+export interface RelatorioPorAmbiente {
+  ambiente_id: number;
+  ambiente_nome: string;
+  total: number;
+}
+
+export interface RelatorioPorSolicitante {
+  solicitante_id: number;
+  solicitante_nome: string;
+  total: number;
+}
+
+export interface RelatorioReservas {
+  resumo: ResumoRelatorio;
+  por_status: RelatorioPorStatus[];
+  por_dia: RelatorioPorDia[];
+  por_ambiente: RelatorioPorAmbiente[];
+  por_solicitante: RelatorioPorSolicitante[];
+}
