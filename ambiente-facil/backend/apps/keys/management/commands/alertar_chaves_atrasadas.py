@@ -16,6 +16,8 @@ Não reenvia o alerta a cada execução: assim que notificada, a chave grava
 limpo em `retirar`/`devolver`/`repor` — ver apps/keys/views.py).
 """
 
+import logging
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
@@ -23,6 +25,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.keys.models import Chave, StatusChave
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -49,25 +53,37 @@ class Command(BaseCommand):
             if agora < limite:
                 continue
 
+            # Grava a marca de "já notificado" ANTES de tentar publicar o evento em tempo
+            # real: mesmo que o broadcast falhe (Redis fora do ar), a chave não deve
+            # continuar disparando alerta a cada execução do job, e uma falha de
+            # notificação não pode travar o processamento das próximas chaves do laço.
             chave.atraso_notificado_em = agora
             chave.save(update_fields=["atraso_notificado_em"])
 
             if channel_layer is not None:
-                async_to_sync(channel_layer.group_send)(
-                    "painel_ambientes",
-                    {
-                        "type": "ambiente_atualizado",
-                        "payload": {
-                            "tipo": "chave_atrasada",
-                            "ambiente_id": chave.ambiente_id,
-                            "reserva_id": reserva.id,
-                            "mensagem": (
-                                f"Chave de '{chave.ambiente.nome}' não devolvida "
-                                f"({tolerancia} min após o fim da reserva Nº {reserva.numero_controle})."
-                            ),
+                try:
+                    async_to_sync(channel_layer.group_send)(
+                        "painel_ambientes",
+                        {
+                            "type": "ambiente_atualizado",
+                            "payload": {
+                                "tipo": "chave_atrasada",
+                                "ambiente_id": chave.ambiente_id,
+                                "reserva_id": reserva.id,
+                                "mensagem": (
+                                    f"Chave de '{chave.ambiente.nome}' não devolvida "
+                                    f"({tolerancia} min após o fim da reserva Nº {reserva.numero_controle})."
+                                ),
+                            },
                         },
-                    },
-                )
+                    )
+                except Exception:
+                    logger.warning(
+                        "Não foi possível publicar alerta de chave atrasada em tempo real "
+                        "(ambiente %s) — o registro em atraso_notificado_em já foi salvo.",
+                        chave.ambiente_id,
+                        exc_info=True,
+                    )
             alertadas += 1
 
         if alertadas:

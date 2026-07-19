@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -61,6 +62,7 @@ class ChaveViewSet(
         return [IsAdminOuVigilante()]
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def retirar(self, request, ambiente_id=None):
         """Marca a chave como retirada, vinculando-a à reserva do dia informada."""
         chave = self.get_object()
@@ -95,12 +97,20 @@ class ChaveViewSet(
         return Response(ChaveSerializer(chave).data)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def devolver(self, request, ambiente_id=None):
         """
         Marca a chave como devolvida à guarita — e nesse mesmo passo encerra a reserva
         correspondente (mesmo que o horário programado ainda não tivesse terminado) e
         libera tanto a sala quanto a chave para o próximo uso. Não existe mais um passo
         manual separado de "repor": devolver já deixa tudo disponível de novo.
+
+        @transaction.atomic: reserva e chave são salvas juntas, numa transação só — se
+        qualquer coisa der errado no meio do caminho, nada fica salvo pela metade (chave
+        livre mas reserva ainda "confirmada", por exemplo). A publicação do evento em
+        tempo real (WebSocket) nunca deveria derrubar isso — ela já é protegida à parte
+        (ver apps/environments/signals.py) — mas a transação garante consistência mesmo
+        diante de qualquer outra falha inesperada.
         """
         chave = self.get_object()
         if chave.status != StatusChave.OCUPADA:
@@ -140,6 +150,7 @@ class ChaveViewSet(
         return Response(ChaveSerializer(chave).data)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def repor(self, request, ambiente_id=None):
         """Confere e pendura a chave de volta, deixando-a disponível para a próxima reserva."""
         chave = self.get_object()

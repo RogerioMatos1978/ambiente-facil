@@ -86,11 +86,19 @@ export default function ReservasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros]);
 
-  // Recarrega a lista ao chegar um alerta de chave atrasada, para a linha correspondente
-  // já aparecer em amarelo sem precisar de F5 (ver Reserva.chave_atrasada e o comando
-  // apps/keys/management/commands/alertar_chaves_atrasadas.py no backend).
+  // Recarrega a lista sempre que uma reserva muda de estado em qualquer lugar do sistema
+  // (criada, atualizada — inclui a reserva sendo encerrada ao devolver a chave na
+  // guarita —, removida) ou quando chega um alerta de chave atrasada. Sem isso, a tela
+  // só refletia mudanças feitas na hora com F5: quem estivesse com a lista de Reservas
+  // aberta não via a reserva virar "Concluída" nem a linha amarela aparecer sozinhas.
+  const EVENTOS_QUE_ATUALIZAM_LISTA = new Set([
+    "reserva_criada",
+    "reserva_atualizada",
+    "reserva_removida",
+    "chave_atrasada",
+  ]);
   useEffect(() => {
-    if (ultimoEvento?.tipo === "chave_atrasada") {
+    if (ultimoEvento && EVENTOS_QUE_ATUALIZAM_LISTA.has(ultimoEvento.tipo)) {
       carregar();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

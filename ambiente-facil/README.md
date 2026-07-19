@@ -225,6 +225,12 @@ dia correspondente, não um controle solto.
 - **Mensagem da guarita**: a tela de detalhes de qualquer reserva mostra as instruções para quem
   vai usar a sala — retirar a chave na guarita ao chegar, verificar o ambiente, zelar pela
   conservação e devolver a chave ao final (`Reserva.mensagem_guarita`).
+- **Notificação em tempo real é "melhor esforço"**: se o Redis (usado pelo WebSocket do painel em
+  tempo real) estiver indisponível, isso nunca impede a reserva de ser encerrada nem a chave de
+  ser liberada ao devolver — só o aviso instantâneo na tela é que não chega, e volta a funcionar
+  assim que o Redis voltar (ver `apps/environments/signals.py`). As ações da guarita
+  (`retirar`/`devolver`/`repor`) também rodam em transação: reserva e chave são salvas juntas, sem
+  risco de ficar uma atualizada e a outra não.
 
 ## Arquitetura e decisões
 

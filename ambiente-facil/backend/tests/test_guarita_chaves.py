@@ -2,6 +2,7 @@
 repor amarrado a reservas do dia, e permissões (admin + vigilante only)."""
 
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core import management
@@ -208,3 +209,34 @@ def test_reserva_expoe_status_da_chave_do_ambiente(
 
     response2 = cliente_autenticado_usuario.get(url)
     assert response2.data["chave_status"] == "ocupada"
+
+
+def test_devolver_finaliza_reserva_mesmo_se_broadcast_em_tempo_real_falhar(
+    cliente_autenticado_vigilante, ambiente, usuario_comum
+):
+    """
+    Regressão: se o channel layer (Redis) estiver indisponível no ambiente da guarita,
+    a publicação do evento em tempo real (signal disparado por Reserva.save(), ver
+    apps/environments/signals.py) não pode impedir a reserva de ser encerrada nem a
+    chave de ser liberada — a notificação é "melhor esforço", nunca bloqueante.
+    """
+    reserva = _reserva_hoje(ambiente, usuario_comum)
+    reserva.status = StatusReserva.CONFIRMADA
+    reserva.save()
+
+    url_retirar = reverse("chave-retirar", kwargs={"ambiente_id": ambiente.id})
+    cliente_autenticado_vigilante.post(url_retirar, {"reserva": reserva.id}, format="json")
+
+    url_devolver = reverse("chave-devolver", kwargs={"ambiente_id": ambiente.id})
+    with patch("apps.environments.signals.get_channel_layer", side_effect=RuntimeError("Redis indisponível")):
+        resp_devolver = cliente_autenticado_vigilante.post(url_devolver, {}, format="json")
+
+    assert resp_devolver.status_code == 200
+    assert resp_devolver.data["status"] == "disponivel"
+
+    reserva.refresh_from_db()
+    assert reserva.status == StatusReserva.CONCLUIDA
+
+    chave = Chave.objects.get(ambiente=ambiente)
+    assert chave.status == StatusChave.DISPONIVEL
+    assert chave.reserva_atual is None
