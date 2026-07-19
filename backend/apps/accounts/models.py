@@ -44,7 +44,10 @@ class UserManager(BaseUserManager):
 class Papel(models.TextChoices):
     ADMINISTRADOR = "admin", "Administrador"
     USUARIO = "user", "Usuário"
-    VIGILANTE = "vigilante", "Vigilante"
+    # Código interno continua "vigilante" (usado em toda a base e nas migrações já
+    # aplicadas); o rótulo exibido é "Guarita", que é como a instituição chama esse
+    # papel no dia a dia.
+    VIGILANTE = "vigilante", "Guarita"
 
 
 class User(AbstractUser):

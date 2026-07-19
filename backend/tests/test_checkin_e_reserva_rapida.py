@@ -211,7 +211,7 @@ def test_mensagem_e_link_whatsapp_incluem_numero_controle_e_abrem_app(ambiente, 
     assert "guarita" in mensagem.lower()
 
     dados = montar_link_whatsapp(reserva)
-    assert dados["link"].startswith("whatsapp://send?phone=")
+    assert dados["link"].startswith("https://wa.me/")
     assert reserva.numero_controle in dados["mensagem"]
     # Sem reservado_para_telefone preenchido, cai para o telefone do solicitante.
     assert dados["telefone"] == "5562999998888"
@@ -234,3 +234,47 @@ def test_mensagem_whatsapp_vai_para_reservado_para_quando_preenchido(ambiente, u
     dados = montar_link_whatsapp(reserva)
     assert dados["telefone"] == "5562911112222"
     assert "Carlos Instrutor" in dados["mensagem"]
+
+
+def test_link_whatsapp_usa_wa_me(ambiente, usuario_comum):
+    from apps.notifications.services import montar_link_whatsapp
+
+    usuario_comum.telefone = "62999998888"
+    usuario_comum.save()
+    inicio = horario_futuro()
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+    dados = montar_link_whatsapp(reserva)
+    assert dados["link"].startswith("https://wa.me/")
+    assert "whatsapp://" not in dados["link"]
+
+
+def test_endpoint_whatsapp_bloqueado_fora_de_confirmada(cliente_autenticado_usuario, ambiente, usuario_comum):
+    from django.urls import reverse
+
+    inicio = horario_futuro()
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Pendente",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1), status=StatusReserva.PENDENTE,
+    )
+    url = reverse("reserva-whatsapp", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_usuario.get(url)
+    assert response.status_code == 400
+
+
+def test_endpoint_whatsapp_funciona_para_confirmada(cliente_autenticado_usuario, ambiente, usuario_comum):
+    from django.urls import reverse
+
+    usuario_comum.telefone = "62999998888"
+    usuario_comum.save()
+    inicio = horario_futuro()
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Confirmada",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1), status=StatusReserva.CONFIRMADA,
+    )
+    url = reverse("reserva-whatsapp", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_usuario.get(url)
+    assert response.status_code == 200
+    assert response.data["link"].startswith("https://wa.me/")

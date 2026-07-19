@@ -13,8 +13,20 @@ import type { Usuario } from "@/types";
 import { Plus } from "lucide-react";
 
 const vazio = {
-  username: "", first_name: "", last_name: "", papel: "user" as "admin" | "user",
+  username: "", first_name: "", last_name: "", papel: "user" as "admin" | "user" | "vigilante",
   telefone: "", departamento: "", password: "",
+};
+
+const PAPEL_LABEL: Record<string, string> = {
+  admin: "Administrador",
+  user: "Usuário",
+  vigilante: "Guarita",
+};
+
+const PAPEL_BADGE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+  admin: "default",
+  user: "secondary",
+  vigilante: "outline",
 };
 
 function extrairMensagemErro(err: unknown): string {
@@ -92,7 +104,7 @@ export default function UsuariosPage() {
                   <td className="hidden p-3 sm:table-cell">{u.username}</td>
                   <td className="hidden p-3 md:table-cell">{u.telefone}</td>
                   <td className="hidden p-3 md:table-cell">{u.departamento}</td>
-                  <td className="p-3"><Badge variant={u.papel === "admin" ? "default" : "secondary"}>{u.papel === "admin" ? "Administrador" : "Usuário"}</Badge></td>
+                  <td className="p-3"><Badge variant={PAPEL_BADGE_VARIANT[u.papel] ?? "secondary"}>{PAPEL_LABEL[u.papel] ?? u.papel}</Badge></td>
                   <td className="p-3">{u.is_active ? <Badge variant="livre">Ativo</Badge> : <Badge variant="destructive">Inativo</Badge>}</td>
                 </tr>
               ))}
@@ -139,11 +151,15 @@ export default function UsuariosPage() {
             <div className="space-y-2"><Label>Departamento</Label><Input value={form.departamento} onChange={(e) => setForm((f) => ({ ...f, departamento: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label>Papel</Label>
-              <Select value={form.papel} onValueChange={(v) => setForm((f) => ({ ...f, papel: v as "admin" | "user" }))}>
+              <Select
+                value={form.papel}
+                onValueChange={(v) => setForm((f) => ({ ...f, papel: v as "admin" | "user" | "vigilante" }))}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">Usuário</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="vigilante">Guarita (só acessa a Guarita de Chaves)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -6,13 +6,12 @@ import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * Busca telefone/mensagem prontos no backend e abre o aplicativo do WhatsApp
- * instalado e logado no computador (esquema whatsapp://send, não o WhatsApp
- * Web). Usa location.href em vez de window.open: para esquemas de URL
- * personalizados o navegador só aciona o handler do sistema operacional de
- * forma confiável se a navegação acontecer na própria aba.
+ * Busca telefone/mensagem prontos no backend e abre o link `https://wa.me/...` numa
+ * nova aba — funciona tanto abrindo o app do WhatsApp (se instalado) quanto o
+ * WhatsApp Web no navegador como alternativa. Só disponível para reservas com status
+ * Confirmada (o backend recusa a chamada para os demais status).
  */
-export function BotaoWhatsApp({ reservaId }: { reservaId: number }) {
+export function BotaoWhatsApp({ reservaId, statusReserva }: { reservaId: number; statusReserva: string }) {
   const [carregando, setCarregando] = useState(false);
   const { toast } = useToast();
 
@@ -28,11 +27,19 @@ export function BotaoWhatsApp({ reservaId }: { reservaId: number }) {
         });
         return;
       }
-      window.location.href = data.link;
+      window.open(data.link, "_blank", "noopener,noreferrer");
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Não foi possível enviar",
+        description: "Só é possível enviar WhatsApp para reservas com status Confirmada.",
+      });
     } finally {
       setCarregando(false);
     }
   }
+
+  if (statusReserva !== "confirmada") return null;
 
   return (
     <Button type="button" variant="outline" size="sm" onClick={enviar} disabled={carregando}>

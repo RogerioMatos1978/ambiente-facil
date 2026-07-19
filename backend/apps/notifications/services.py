@@ -52,15 +52,14 @@ def montar_link_whatsapp(reserva) -> dict:
     se não tiver sido informado (reservas antigas, anteriores a este campo), cai para
     o telefone de quem solicitou a reserva.
 
-    Usa o esquema `whatsapp://send` (em vez de `https://wa.me/`) para abrir
-    diretamente o aplicativo do WhatsApp instalado e logado no computador,
-    sem passar pelo navegador/WhatsApp Web. Requer o WhatsApp Desktop
-    instalado na máquina que aciona o botão.
+    Usa `https://wa.me/` (em vez de `whatsapp://send`): nem todo mundo tem o WhatsApp
+    Desktop instalado, e wa.me funciona tanto abrindo o app (se instalado) quanto o
+    WhatsApp Web no navegador, como alternativa.
     """
     # _telefone_e164 cuida da limpeza e do prefixo de DDI nos dois casos — usar
     # solicitante.whatsapp_e164 aqui (que só limpa, sem prefixar) deixaria o fallback
     # inconsistente com o caminho principal.
     telefone = _telefone_e164(reserva.reservado_para_telefone) or _telefone_e164(reserva.solicitante.telefone)
     mensagem = montar_mensagem_whatsapp(reserva)
-    link = f"whatsapp://send?phone={telefone}&text={quote(mensagem)}" if telefone else None
+    link = f"https://wa.me/{telefone}?text={quote(mensagem)}" if telefone else None
     return {"telefone": telefone, "mensagem": mensagem, "link": link}

@@ -18,7 +18,7 @@ completa e exportação de relatórios. O sistema não usa e-mail: o telefone (W
 - Autenticação JWT com dois perfis (Administrador e Usuário) e permissões RBAC em cada endpoint.
 - Cadastro de ambientes (tipo, capacidade, localização, recursos, foto).
 - Cadastro de usuários (admin) com telefone (WhatsApp, obrigatório — único contato do usuário; não há campo de e-mail no sistema) e departamento.
-- Três perfis de usuário: **Administrador** (acesso total), **Usuário** (solicita reservas, vê a agenda) e **Vigilante** (acesso restrito só à Guarita de Chaves — não enxerga dashboard, calendário, reservas, ambientes, usuários nem auditoria, nem pela tela nem pela API).
+- Três perfis de usuário, escolhidos pelo admin ao cadastrar (`/usuarios`): **Administrador** (acesso total), **Usuário** (solicita reservas, vê a agenda) e **Guarita** (código interno "vigilante" — acesso restrito só à Guarita de Chaves; não enxerga dashboard, calendário, reservas, ambientes, usuários nem auditoria, nem pela tela nem pela API).
 - Reservas com **prevenção automática de conflitos de horário** (validada no modelo e na API).
 - A lista de reservas é uma **agenda compartilhada**: qualquer usuário autenticado vê todas as reservas de todos os ambientes (não só as próprias) — inclusive nas exportações e no relatório.
 - O filtro de período (`data_de`/`data_ate`, usado no calendário, no relatório e nas exportações) considera reservas que **se sobrepõem** à janela pesquisada, não só as totalmente contidas nela — corrige um bug em que reservas que cruzavam o início/fim do período filtrado somem do calendário.
@@ -30,8 +30,9 @@ completa e exportação de relatórios. O sistema não usa e-mail: o telefone (W
 - Painel de ambientes livres/ocupados **em tempo real via WebSocket** (Django Channels + Redis).
 - Calendário no frontend com visões **Dia / Semana / Mês / Agenda**, inspirado no Outlook e Google Calendar.
 - Dashboard com indicadores (KPIs) e gráfico de reservas da semana.
-- Botão "Enviar WhatsApp" que monta a mensagem (confirmação da reserva + instruções da guarita) e abre o **aplicativo do WhatsApp instalado e logado no computador** (esquema `whatsapp://send`, não o WhatsApp Web) — requer o WhatsApp Desktop instalado na máquina que aciona o botão. A mensagem vai para o telefone de **quem vai efetivamente usar a sala** ("Reservado para"), não para quem apenas fez a reserva no sistema — cai para o telefone do solicitante só se o do responsável não tiver sido informado (reservas antigas).
+- Botão "Enviar WhatsApp" (só aparece em reservas com **status Confirmada** — o backend também recusa a chamada para os demais status) que monta a mensagem (confirmação da reserva + instruções da guarita) e abre um link **`https://wa.me/...`** em nova aba — funciona com o WhatsApp Desktop instalado ou, na falta dele, com o WhatsApp Web pelo navegador. A mensagem vai para o telefone de **quem vai efetivamente usar a sala** ("Reservado para"), não para quem apenas fez a reserva no sistema — cai para o telefone do solicitante só se o do responsável não tiver sido informado (reservas antigas).
 - A lista de **Reservas** mostra também o **status da chave** do ambiente (Disponível / Ocupada / Devolvida), refletindo em tempo real o que está acontecendo na Guarita de Chaves.
+- A tela de **Reservas** vem ordenada pelo **Nº de controle, do maior para o menor** (mais recente primeiro) e filtrada por **status Confirmada** por padrão; tem campos de busca (título/descrição/ambiente), filtro por ambiente, status e período, e um botão para limpar os filtros — os mesmos filtros valem para as exportações CSV/Excel/PDF dessa tela.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
 - Exportação de reservas em **CSV, Excel (XLSX) e PDF**.
@@ -82,7 +83,7 @@ O comando `seed_demo` cria dois usuários de teste:
 |-------------|----------------|----------------|
 | admin       | Admin@123      | Administrador  |
 | professor   | Usuario@123    | Usuário comum  |
-| vigilante   | Vigilante@123  | Vigilante (só Guarita de Chaves) |
+| vigilante   | Vigilante@123  | Guarita (só Guarita de Chaves) |
 
 ## Produção em rede local (intranet, sem acesso externo)
 

@@ -33,7 +33,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, NaoEhVigilante]
     filterset_class = ReservaFilter
     search_fields = ["titulo", "descricao", "ambiente__nome"]
-    ordering_fields = ["data_inicio", "data_fim", "criado_em"]
+    ordering_fields = ["data_inicio", "data_fim", "criado_em", "id"]
     throttle_scope = "reservations-write"
 
     def get_queryset(self):
@@ -211,8 +211,16 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def whatsapp(self, request, pk=None):
-        """Retorna telefone, mensagem e link wa.me prontos para o botão 'Enviar WhatsApp' do frontend."""
+        """
+        Retorna telefone, mensagem e link wa.me prontos para o botão 'Enviar WhatsApp'
+        do frontend. Só disponível para reservas com status Confirmada — pendente,
+        cancelada, concluída e expirada não fazem sentido para avisar ninguém.
+        """
         reserva = self.get_object()
+        if reserva.status != StatusReserva.CONFIRMADA:
+            return Response(
+                {"detail": "Só é possível enviar WhatsApp para reservas com status Confirmada."}, status=400
+            )
         return Response(montar_link_whatsapp(reserva))
 
     @action(detail=False, methods=["get"])

@@ -140,3 +140,39 @@ def test_usuario_comum_nao_acessa_guarita_chaves(cliente_autenticado_usuario, am
     url = reverse("chave-list")
     response = cliente_autenticado_usuario.get(url)
     assert response.status_code == 403
+
+
+def test_admin_pode_criar_usuario_com_papel_guarita(cliente_autenticado_admin):
+    url = reverse("user-list")
+    response = cliente_autenticado_admin.post(
+        url,
+        {
+            "username": "guarita1",
+            "first_name": "Zé",
+            "last_name": "Guarita",
+            "papel": "vigilante",
+            "telefone": "62955550000",
+            "password": "SenhaForte123",
+        },
+        format="json",
+    )
+    assert response.status_code == 201
+    assert response.data["papel"] == "vigilante"
+
+
+def test_reservas_ordenadas_por_numero_controle_decrescente(cliente_autenticado_admin, ambiente, admin_user):
+    from apps.reservations.models import Reserva
+
+    base = horario_futuro()
+    primeira = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Primeira",
+        data_inicio=base, data_fim=base + timedelta(hours=1),
+    )
+    segunda = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Segunda",
+        data_inicio=base.replace(hour=12), data_fim=base.replace(hour=13),
+    )
+    url = reverse("reserva-list")
+    response = cliente_autenticado_admin.get(url, {"ordering": "-id", "status": ""})
+    ids = [r["id"] for r in response.data["results"]]
+    assert ids.index(segunda.id) < ids.index(primeira.id)

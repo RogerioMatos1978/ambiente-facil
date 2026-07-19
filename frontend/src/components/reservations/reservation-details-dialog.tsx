@@ -146,7 +146,7 @@ export function ReservationDetailsDialog({
         )}
 
         <DialogFooter className="flex-wrap gap-2 sm:justify-between">
-          <BotaoWhatsApp reservaId={reserva.id} />
+          <BotaoWhatsApp reservaId={reserva.id} statusReserva={reserva.status} />
           <div className="flex gap-2">
             {aguardandoCheckin && (
               <Button onClick={confirmarCheckin} disabled={confirmandoCheckin}>
