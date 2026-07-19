@@ -3,18 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
-import {
-  LayoutDashboard, CalendarDays, Building2, ClipboardList, Users, ShieldCheck,
-} from "lucide-react";
-
-const itens = [
-  { href: "/dashboard", label: "Dashboard", icone: LayoutDashboard, adminOnly: false },
-  { href: "/calendario", label: "Calendário", icone: CalendarDays, adminOnly: false },
-  { href: "/reservas", label: "Reservas", icone: ClipboardList, adminOnly: false },
-  { href: "/ambientes", label: "Ambientes", icone: Building2, adminOnly: false },
-  { href: "/usuarios", label: "Usuários", icone: Users, adminOnly: true },
-  { href: "/auditoria", label: "Auditoria", icone: ShieldCheck, adminOnly: true },
-];
+import { itensNavegacao } from "./nav-items";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -29,7 +18,7 @@ export function Sidebar() {
         <span className="font-semibold">Ambiente Fácil</span>
       </div>
       <nav className="flex-1 space-y-1 p-3">
-        {itens
+        {itensNavegacao
           .filter((item) => !item.adminOnly || isAdmin)
           .map((item) => {
             const ativo = pathname?.startsWith(item.href);

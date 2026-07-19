@@ -40,6 +40,12 @@ auditoria completa e exportação de relatórios.
   instantânea (15/30/45/60/90/120 min) em 1 clique. Cada ambiente tem um QR code (`/ambientes/qrcodes`,
   pronto para imprimir e colar na porta) que leva à página `/checkin/<id>` — mostra se a sala está
   livre/ocupada, permite reservar na hora ou confirmar check-in pelo celular.
+- **Cards de sala clicáveis**: no painel em tempo real e na tela de Ambientes, clicar num ambiente
+  livre abre direto o formulário de nova reserva já com o ambiente selecionado.
+- **Totalmente responsivo para celular**: menu lateral vira uma gaveta deslizante (ícone de menu no
+  topo) abaixo do breakpoint `md`, tabelas fazem scroll horizontal e escondem colunas secundárias em
+  telas pequenas, formulários empilham os campos em vez de ficar apertados, e o calendário (visão Mês)
+  tem scroll horizontal seguro.
 
 ## Rodando localmente com Docker (recomendado)
 

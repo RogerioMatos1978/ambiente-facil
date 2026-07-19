@@ -18,27 +18,27 @@ export default function AuditoriaPage() {
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{logs.length} evento(s) de auditoria registrados</p>
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="p-3">Data/Hora</th>
-                <th className="p-3">Usuário</th>
+                <th className="whitespace-nowrap p-3">Data/Hora</th>
+                <th className="hidden p-3 sm:table-cell">Usuário</th>
                 <th className="p-3">Ação</th>
-                <th className="p-3">Entidade</th>
+                <th className="hidden p-3 md:table-cell">Entidade</th>
                 <th className="p-3">Descrição</th>
-                <th className="p-3">IP</th>
+                <th className="hidden p-3 lg:table-cell">IP</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log) => (
                 <tr key={log.id} className="border-b last:border-0">
-                  <td className="p-3">{format(new Date(log.criado_em), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</td>
-                  <td className="p-3">{log.usuario_nome || "—"}</td>
+                  <td className="whitespace-nowrap p-3">{format(new Date(log.criado_em), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</td>
+                  <td className="hidden p-3 sm:table-cell">{log.usuario_nome || "—"}</td>
                   <td className="p-3"><Badge variant="secondary">{log.acao}</Badge></td>
-                  <td className="p-3">{log.entidade}{log.entidade_id ? ` #${log.entidade_id}` : ""}</td>
+                  <td className="hidden p-3 md:table-cell">{log.entidade}{log.entidade_id ? ` #${log.entidade_id}` : ""}</td>
                   <td className="p-3">{log.descricao}</td>
-                  <td className="p-3 text-xs text-muted-foreground">{log.endereco_ip}</td>
+                  <td className="hidden p-3 text-xs text-muted-foreground lg:table-cell">{log.endereco_ip}</td>
                 </tr>
               ))}
               {logs.length === 0 && (

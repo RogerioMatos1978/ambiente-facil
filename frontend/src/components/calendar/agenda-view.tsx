@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { format, compareAsc } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre"> = {
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "livre" | "outline"> = {
   confirmada: "livre",
   pendente: "secondary",
   cancelada: "destructive",
   concluida: "default",
+  expirada: "outline",
 };
 
 export function AgendaView({ reservas, aoClicarReserva }: { reservas: Reserva[]; aoClicarReserva: (r: Reserva) => void }) {
@@ -24,15 +25,15 @@ export function AgendaView({ reservas, aoClicarReserva }: { reservas: Reserva[];
         <button
           key={r.id}
           onClick={() => aoClicarReserva(r)}
-          className="flex w-full items-center justify-between gap-4 p-4 text-left hover:bg-accent/40"
+          className="flex w-full flex-wrap items-center justify-between gap-2 p-4 text-left hover:bg-accent/40 sm:flex-nowrap sm:gap-4"
         >
-          <div>
-            <p className="text-sm font-medium">{r.titulo}</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{r.titulo}</p>
+            <p className="truncate text-xs text-muted-foreground">
               {format(new Date(r.data_inicio), "EEEE, dd/MM/yyyy HH:mm", { locale: ptBR })} · {r.ambiente_detalhe?.nome}
             </p>
           </div>
-          <Badge variant={statusVariant[r.status] ?? "default"}>{r.status}</Badge>
+          <Badge variant={statusVariant[r.status] ?? "default"}>{r.status_display}</Badge>
         </button>
       ))}
     </div>

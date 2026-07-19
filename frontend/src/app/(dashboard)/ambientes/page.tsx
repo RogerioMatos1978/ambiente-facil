@@ -15,8 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api, API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useToast } from "@/hooks/use-toast";
+import { ReservationFormDialog } from "@/components/reservations/reservation-form-dialog";
 import type { Ambiente, TipoAmbiente } from "@/types";
-import { Plus, Pencil, QrCode } from "lucide-react";
+import { Plus, Pencil, QrCode, CalendarPlus } from "lucide-react";
 
 const tipos: { valor: TipoAmbiente; rotulo: string }[] = [
   { valor: "sala_aula", rotulo: "Sala de Aula" },
@@ -43,6 +44,7 @@ export default function AmbientesPage() {
   const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [form, setForm] = useState(vazio);
+  const [ambienteParaReservar, setAmbienteParaReservar] = useState<Ambiente | null>(null);
 
   async function carregar() {
     const { data } = await api.get("/environments/", { params: { page_size: 100 } });
@@ -107,41 +109,67 @@ export default function AmbientesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ambientes.map((a) => (
-          <Card key={a.id}>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle className="text-base">{a.nome}</CardTitle>
-                <p className="text-xs text-muted-foreground">{a.localizacao}</p>
-              </div>
-              <Badge variant={a.status_atual === "livre" ? "livre" : "ocupado"}>
-                {a.status_atual === "livre" ? "Livre" : "Ocupado"}
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p>Capacidade: {a.capacidade} pessoas</p>
-              <p>Tipo: {tipos.find((t) => t.valor === a.tipo)?.rotulo}</p>
-              {a.exige_checkin && (
-                <p className="text-xs text-muted-foreground">
-                  Exige check-in (tolerância: {a.tolerancia_checkin_minutos} min)
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`${API_BASE_URL}/api/v1/environments/${a.id}/qrcode/`} target="_blank" rel="noreferrer">
-                    <QrCode className="mr-2 h-3 w-3" /> QR code
-                  </a>
-                </Button>
-                {isAdmin && (
-                  <Button variant="outline" size="sm" onClick={() => abrirEdicao(a)}>
-                    <Pencil className="mr-2 h-3 w-3" /> Editar
-                  </Button>
+        {ambientes.map((a) => {
+          const livre = a.status_atual === "livre";
+          return (
+            <Card
+              key={a.id}
+              role={livre ? "button" : undefined}
+              tabIndex={livre ? 0 : undefined}
+              onClick={() => livre && setAmbienteParaReservar(a)}
+              onKeyDown={(e) => {
+                if (livre && (e.key === "Enter" || e.key === " ")) setAmbienteParaReservar(a);
+              }}
+              title={livre ? "Clique para reservar este ambiente" : undefined}
+              className={livre ? "cursor-pointer transition-colors hover:border-primary hover:bg-accent/30" : ""}
+            >
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div className="min-w-0">
+                  <CardTitle className="truncate text-base">{a.nome}</CardTitle>
+                  <p className="truncate text-xs text-muted-foreground">{a.localizacao}</p>
+                </div>
+                <Badge variant={livre ? "livre" : "ocupado"}>{livre ? "Livre" : "Ocupado"}</Badge>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>Capacidade: {a.capacidade} pessoas</p>
+                <p>Tipo: {tipos.find((t) => t.valor === a.tipo)?.rotulo}</p>
+                {a.exige_checkin && (
+                  <p className="text-xs text-muted-foreground">
+                    Exige check-in (tolerância: {a.tolerancia_checkin_minutos} min)
+                  </p>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {livre && (
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); setAmbienteParaReservar(a); }}>
+                      <CalendarPlus className="mr-2 h-3 w-3" /> Reservar
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild onClick={(e) => e.stopPropagation()}>
+                    <a href={`${API_BASE_URL}/api/v1/environments/${a.id}/qrcode/`} target="_blank" rel="noreferrer">
+                      <QrCode className="mr-2 h-3 w-3" /> QR code
+                    </a>
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); abrirEdicao(a); }}>
+                      <Pencil className="mr-2 h-3 w-3" /> Editar
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      <ReservationFormDialog
+        aberto={ambienteParaReservar !== null}
+        aoFechar={() => setAmbienteParaReservar(null)}
+        aoCriar={() => {
+          carregar();
+          setAmbienteParaReservar(null);
+        }}
+        ambienteIdPadrao={ambienteParaReservar?.id}
+      />
 
       <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
         <DialogContent>
@@ -164,7 +192,7 @@ export default function AmbientesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Localização</Label>
                 <Input value={form.localizacao} onChange={(e) => setForm((f) => ({ ...f, localizacao: e.target.value }))} />

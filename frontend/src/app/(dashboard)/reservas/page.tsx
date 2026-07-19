@@ -69,15 +69,15 @@ export default function ReservasPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="p-3">Título</th>
-                <th className="p-3">Ambiente</th>
-                <th className="p-3">Solicitante</th>
+                <th className="hidden p-3 md:table-cell">Ambiente</th>
+                <th className="hidden p-3 md:table-cell">Solicitante</th>
                 <th className="p-3">Início</th>
-                <th className="p-3">Fim</th>
+                <th className="hidden p-3 sm:table-cell">Fim</th>
                 <th className="p-3">Status</th>
               </tr>
             </thead>
@@ -89,10 +89,10 @@ export default function ReservasPage() {
                   className="cursor-pointer border-b last:border-0 hover:bg-accent/40"
                 >
                   <td className="p-3 font-medium">{r.titulo}</td>
-                  <td className="p-3">{r.ambiente_detalhe?.nome}</td>
-                  <td className="p-3">{r.solicitante_nome}</td>
-                  <td className="p-3">{format(new Date(r.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
-                  <td className="p-3">{format(new Date(r.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
+                  <td className="hidden p-3 md:table-cell">{r.ambiente_detalhe?.nome}</td>
+                  <td className="hidden p-3 md:table-cell">{r.solicitante_nome}</td>
+                  <td className="whitespace-nowrap p-3">{format(new Date(r.data_inicio), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
+                  <td className="hidden whitespace-nowrap p-3 sm:table-cell">{format(new Date(r.data_fim), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
                   <td className="p-3">
                     <Badge variant={statusVariant[r.status] ?? "default"}>{r.status_display}</Badge>
                   </td>

@@ -21,7 +21,8 @@ export function MonthView({
   const dias = eachDayOfInterval({ start: inicio, end: fim });
 
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
+      <div className="min-w-[560px]">
       <div className="grid grid-cols-7 border-b bg-muted/50 text-center text-xs font-medium text-muted-foreground">
         {diasSemana.map((d) => (
           <div key={d} className="py-2">{d}</div>
@@ -37,7 +38,7 @@ export function MonthView({
               key={dia.toISOString()}
               onClick={() => aoClicarDia(dia)}
               className={cn(
-                "flex min-h-[100px] flex-col items-start gap-1 border-b border-r p-2 text-left align-top hover:bg-accent/50",
+                "flex min-h-[70px] flex-col items-start gap-1 border-b border-r p-2 text-left align-top hover:bg-accent/50 sm:min-h-[100px]",
                 !isSameMonth(dia, dataAtual) && "bg-muted/30 text-muted-foreground"
               )}
             >
@@ -65,6 +66,7 @@ export function MonthView({
             </button>
           );
         })}
+      </div>
       </div>
     </div>
   );
