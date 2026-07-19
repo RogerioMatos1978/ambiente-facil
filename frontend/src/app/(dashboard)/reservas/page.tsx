@@ -10,6 +10,7 @@ import { ReservationDetailsDialog } from "@/components/reservations/reservation-
 import { ReservationFormDialog } from "@/components/reservations/reservation-form-dialog";
 import { api, API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { usePainelTempoReal } from "@/hooks/use-painel-tempo-real";
 import type { Ambiente, Reserva, StatusReserva } from "@/types";
 import { FileSpreadsheet, FileText, FileDown, Plus, Search, X } from "lucide-react";
 import { format } from "date-fns";
@@ -23,10 +24,9 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "l
   expirada: "outline",
 };
 
-const chaveVariant: Record<string, "livre" | "ocupado" | "secondary" | "outline"> = {
+const chaveVariant: Record<string, "livre" | "ocupado" | "outline"> = {
   disponivel: "livre",
   ocupada: "ocupado",
-  devolvida: "secondary",
 };
 
 const STATUS_OPCOES: { value: StatusReserva; label: string }[] = [
@@ -61,6 +61,7 @@ function filtrosParaParams(filtros: Filtros) {
 
 export default function ReservasPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const { ultimoEvento } = usePainelTempoReal();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
   const [selecionada, setSelecionada] = useState<Reserva | null>(null);
@@ -82,6 +83,23 @@ export default function ReservasPage() {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros]);
+
+  // Recarrega a lista sempre que uma reserva muda de estado em qualquer lugar do sistema
+  // (criada, atualizada — inclui a reserva sendo encerrada ao devolver a chave na
+  // guarita —, removida). Sem isso, a tela só refletia mudanças feitas na hora com F5:
+  // quem estivesse com a lista de Reservas aberta não via a reserva virar "Concluída"
+  // sozinha.
+  const EVENTOS_QUE_ATUALIZAM_LISTA = new Set([
+    "reserva_criada",
+    "reserva_atualizada",
+    "reserva_removida",
+  ]);
+  useEffect(() => {
+    if (ultimoEvento && EVENTOS_QUE_ATUALIZAM_LISTA.has(ultimoEvento.tipo)) {
+      carregar();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ultimoEvento]);
 
   async function exportar(formato: "csv" | "xlsx" | "pdf") {
     const params = new URLSearchParams(filtrosParaParams(filtros));

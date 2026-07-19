@@ -1,6 +1,7 @@
 """Guarita de Chaves: controle físico da chave de cada ambiente, amarrado às reservas
-do dia. Perfis com acesso: administrador (tudo) e vigilante (retirar/devolver/repor —
-ver apps.common.permissions e apps.keys.views)."""
+do dia. Perfis com acesso: administrador (tudo) e vigilante (retirar/devolver — ver
+apps.common.permissions e apps.keys.views). Não existe ação "repor": devolver já deixa
+a chave disponível de novo, para qualquer perfil, sem etapa manual extra."""
 
 from django.conf import settings
 from django.db import models
@@ -9,17 +10,16 @@ from django.db import models
 class StatusChave(models.TextChoices):
     DISPONIVEL = "disponivel", "Disponível"
     OCUPADA = "ocupada", "Ocupada"
-    DEVOLVIDA = "devolvida", "Devolvida"
 
 
 class Chave(models.Model):
     """
     Uma chave por ambiente (criada automaticamente — ver ChaveViewSet.get_queryset).
-    Ciclo de vida normal:
+    Ciclo de vida — só dois estados, sem etapa intermediária:
 
         disponível --(retirar, vinculando a uma reserva do dia)--> ocupada
-        ocupada --(devolver)--> devolvida
-        devolvida --(repor, confere e pendura de novo)--> disponível
+        ocupada --(devolver)--> disponível
+            (a própria ação "devolver" já encerra a reserva vinculada e libera a sala)
     """
 
     ambiente = models.OneToOneField("environments.Ambiente", on_delete=models.CASCADE, related_name="chave")

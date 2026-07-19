@@ -8,12 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 import type { Chave } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { KeyRound, MapPin, RotateCcw, UserRound } from "lucide-react";
+import { KeyRound, MapPin, UserRound } from "lucide-react";
 
-const STATUS_BADGE: Record<Chave["status"], "livre" | "ocupado" | "secondary"> = {
+const STATUS_BADGE: Record<Chave["status"], "livre" | "ocupado"> = {
   disponivel: "livre",
   ocupada: "ocupado",
-  devolvida: "secondary",
 };
 
 /**
@@ -68,19 +67,6 @@ export default function GuaritaChavesPage() {
     }
   }
 
-  async function repor(ambienteId: number) {
-    setProcessando(ambienteId);
-    try {
-      await api.post(`/guarita/chaves/${ambienteId}/repor/`, {});
-      toast({ title: "Chave reposta", description: "Disponível para a próxima reserva." });
-      carregar();
-    } catch {
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível repor a chave." });
-    } finally {
-      setProcessando(null);
-    }
-  }
-
   if (carregando) {
     return <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">Carregando...</div>;
   }
@@ -88,8 +74,9 @@ export default function GuaritaChavesPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Retire a chave amarrando-a à reserva do dia correspondente; devolva ao fim do uso e reponha
-        quando conferir que está de volta ao lugar.
+        Retire a chave amarrando-a à reserva do dia correspondente. Ao devolver, a reserva é encerrada
+        e a sala e a chave já ficam disponíveis na hora, para qualquer ambiente — não existe um passo
+        extra de conferência manual.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -164,17 +151,6 @@ export default function GuaritaChavesPage() {
                 </Button>
               )}
 
-              {chave.status === "devolvida" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  disabled={processando === chave.ambiente}
-                  onClick={() => repor(chave.ambiente)}
-                >
-                  <RotateCcw className="mr-1 h-3.5 w-3.5" /> Repor (disponível de novo)
-                </Button>
-              )}
             </CardContent>
           </Card>
         ))}

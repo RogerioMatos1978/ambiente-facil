@@ -197,22 +197,39 @@ o lugar certo.
 ## Guarita de Chaves
 
 Controle físico da chave de cada ambiente, pensado para a portaria/guarita de uma unidade
-SESI/SENAI: uma chave por ambiente (provisionada automaticamente), com três estados —
-**disponível → ocupada → devolvida → disponível de novo** — sempre amarrada à reserva do dia
-correspondente, não um controle solto.
+SESI/SENAI: uma chave por ambiente (provisionada automaticamente), sempre amarrada à reserva do
+dia correspondente, não um controle solto.
 
-- **Acesso**: administrador (vê e altera tudo) e o novo perfil **Vigilante** (retira, devolve e
-  repõe chaves). Usuário comum não tem acesso — nem pela tela (`/guarita-chaves` não aparece no
-  menu), nem pela API (`IsAdminOuVigilante`, ver `apps/keys/views.py`). O vigilante, por sua vez,
-  só enxerga essa tela: todo o resto do sistema (dashboard, calendário, reservas, ambientes,
+- **Acesso**: administrador (vê e altera tudo) e o novo perfil **Vigilante** (retira e devolve
+  chaves). Usuário comum não tem acesso — nem pela tela (`/guarita-chaves` não aparece no menu),
+  nem pela API (`IsAdminOuVigilante`, ver `apps/keys/views.py`). O vigilante, por sua vez, só
+  enxerga essa tela: todo o resto do sistema (dashboard, calendário, reservas, ambientes,
   relatórios) é bloqueado tanto na navegação quanto na API (`apps.common.permissions.NaoEhVigilante`).
-- **Fluxo**: a tela lista cada ambiente com as reservas do dia; retirar a chave exige escolher a
-  reserva correspondente (`POST /api/v1/guarita/chaves/<ambiente_id>/retirar/`), devolver marca o
-  fim do uso (`.../devolver/`) e repor confere e deixa disponível para a próxima reserva
-  (`.../repor/`). Toda ação fica registrada na auditoria.
+- **Fluxo (só dois estados: disponível ↔ ocupada, sem etapa intermediária)**: a tela lista cada
+  ambiente com as reservas do dia; retirar a chave exige escolher a reserva correspondente
+  (`POST /api/v1/guarita/chaves/<ambiente_id>/retirar/`). **Devolver** (`.../devolver/`) faz tudo
+  de uma vez, num único clique, para qualquer perfil (inclusive administrador): encerra a reserva
+  vinculada (`Reserva.status = concluída`), libera a sala e deixa a chave disponível para o
+  próximo uso. **Não existe ação "repor"** — foi removida por completo (não há mais um estado
+  "devolvida" nem uma etapa de conferência manual depois de devolver, para ninguém). Toda ação
+  fica registrada na auditoria.
+- **Nenhuma reserva fica em aberto**: isso é garantido em duas frentes independentes, que juntas
+  cobrem qualquer cenário. (1) Ao devolver a chave na guarita, a reserva vinculada é concluída na
+  hora (acima). (2) Mesmo que a chave nunca seja devolvida, um job em segundo plano
+  (`concluir_reservas_passadas`, mesmo agendador do check-in automático, ver
+  `apps/reservations/apps.py`) roda a cada poucos minutos e conclui automaticamente qualquer
+  reserva "pendente"/"confirmada" cujo horário já tenha passado — com ou sem chave envolvida. Ou
+  seja: mesmo se a chave física nunca voltar pra guarita, a agenda nunca fica presa indefinidamente
+  (só a chave em si continua "ocupada" até alguém devolvê-la de fato).
 - **Mensagem da guarita**: a tela de detalhes de qualquer reserva mostra as instruções para quem
   vai usar a sala — retirar a chave na guarita ao chegar, verificar o ambiente, zelar pela
   conservação e devolver a chave ao final (`Reserva.mensagem_guarita`).
+- **Notificação em tempo real é "melhor esforço"**: se o Redis (usado pelo WebSocket do painel em
+  tempo real) estiver indisponível, isso nunca impede a reserva de ser encerrada nem a chave de
+  ser liberada ao devolver — só o aviso instantâneo na tela é que não chega, e volta a funcionar
+  assim que o Redis voltar (ver `apps/environments/signals.py`). As ações da guarita
+  (`retirar`/`devolver`) também rodam em transação: reserva e chave são salvas juntas, sem risco
+  de ficar uma atualizada e a outra não.
 
 ## Arquitetura e decisões
 
