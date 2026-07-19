@@ -14,18 +14,22 @@ FROM python:3.11-slim
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH=/root/.local/bin:$PATH \
-    DJANGO_SETTINGS_MODULE=config.settings.prod
+    PATH=/home/appuser/.local/bin:$PATH \
+    DJANGO_SETTINGS_MODULE=config.settings.lan
 
 RUN apt-get update && apt-get install -y --no-install-recommends libpq5 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m appuser
 
-COPY --from=builder /root/.local /root/.local
+# Copia os pacotes instalados para o home do usuário que de fato roda o
+# processo (appuser), não para /root — senão o Python não os enxerga e
+# a inicialização falha com "ModuleNotFoundError: No module named 'django'".
+COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
-RUN mkdir -p /app/staticfiles /app/media /app/logs && chown -R appuser:appuser /app
+RUN mkdir -p /app/staticfiles /app/media /app/logs \
+    && chown -R appuser:appuser /app /home/appuser/.local
 
 USER appuser
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
+CMD ["gunicorn", "config.asgi:application", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
