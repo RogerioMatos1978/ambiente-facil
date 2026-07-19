@@ -205,23 +205,30 @@ dia correspondente, não um controle solto.
   nem pela API (`IsAdminOuVigilante`, ver `apps/keys/views.py`). O vigilante, por sua vez, só
   enxerga essa tela: todo o resto do sistema (dashboard, calendário, reservas, ambientes,
   relatórios) é bloqueado tanto na navegação quanto na API (`apps.common.permissions.NaoEhVigilante`).
-- **Fluxo (disponível → ocupada → disponível de novo)**: a tela lista cada ambiente com as
-  reservas do dia; retirar a chave exige escolher a reserva correspondente
-  (`POST /api/v1/guarita/chaves/<ambiente_id>/retirar/`). **Devolver**
-  (`.../devolver/`) faz tudo de uma vez, num único clique: encerra a reserva vinculada
-  (`Reserva.status = concluída`), libera a sala e deixa a chave disponível para o próximo uso —
-  não existe mais um passo manual separado de "repor" no fluxo normal. A ação `.../repor/`
-  continua existindo só como ajuste raro de administrador (ex.: corrigir uma chave que ficou
-  parada em "devolvida" por uma edição direta via PATCH). Toda ação fica registrada na auditoria.
-- **Alerta de chave não devolvida**: um job em segundo plano (mesmo agendador do check-in
-  automático, ver `apps/reservations/apps.py`) confere a cada poucos minutos se alguma chave
-  retirada passou de **`CHAVE_TOLERANCIA_DEVOLUCAO_MINUTOS`** (padrão 10 minutos, configurável no
-  `.env`) após o fim da reserva sem ser devolvida. Quando isso acontece
-  (`apps/keys/management/commands/alertar_chaves_atrasadas.py`), o sistema avisa em tempo real
-  quem estiver com a tela da Guarita de Chaves aberta (mesmo WebSocket do painel em tempo real) e
-  a reserva correspondente passa a aparecer com a **linha em amarelo** e um selo "Atrasada" na
-  lista de Reservas — o alerta só é disparado uma vez por retirada (não fica repetindo a cada
-  execução do job).
+- **Fluxo (só dois estados: disponível ↔ ocupada, sem etapa intermediária)**: a tela lista cada
+  ambiente com as reservas do dia; retirar a chave exige escolher a reserva correspondente
+  (`POST /api/v1/guarita/chaves/<ambiente_id>/retirar/`). **Devolver** (`.../devolver/`) faz tudo
+  de uma vez, num único clique, para qualquer perfil (inclusive administrador): encerra a reserva
+  vinculada (`Reserva.status = concluída`), libera a sala e deixa a chave disponível para o
+  próximo uso. **Não existe ação "repor"** — foi removida por completo (não há mais um estado
+  "devolvida" nem uma etapa de conferência manual depois de devolver, para ninguém). Toda ação
+  fica registrada na auditoria.
+- **Nenhuma reserva fica em aberto**: isso é garantido em duas frentes independentes, que juntas
+  cobrem qualquer cenário. (1) Ao devolver a chave na guarita, a reserva vinculada é concluída na
+  hora (acima). (2) Mesmo que a chave nunca seja devolvida, um job em segundo plano
+  (`concluir_reservas_passadas`, mesmo agendador do check-in automático, ver
+  `apps/reservations/apps.py`) roda a cada poucos minutos e conclui automaticamente qualquer
+  reserva "pendente"/"confirmada" cujo horário já tenha passado — com ou sem chave envolvida. Ou
+  seja: mesmo se a chave física nunca voltar pra guarita, a agenda nunca fica presa indefinidamente
+  (só a chave em si continua "ocupada" até alguém devolvê-la de fato).
+- **Alerta de chave não devolvida**: um segundo job em segundo plano (mesmo agendador) confere a
+  cada poucos minutos se alguma chave retirada passou de **`CHAVE_TOLERANCIA_DEVOLUCAO_MINUTOS`**
+  (padrão 10 minutos, configurável no `.env`) após o fim da reserva sem ser devolvida. Quando isso
+  acontece (`apps/keys/management/commands/alertar_chaves_atrasadas.py`), o sistema avisa em tempo
+  real quem estiver com a tela da Guarita de Chaves aberta (mesmo WebSocket do painel em tempo
+  real) e a reserva correspondente passa a aparecer com a **linha em amarelo** e um selo
+  "Atrasada" na lista de Reservas — o alerta só é disparado uma vez por retirada (não fica
+  repetindo a cada execução do job).
 - **Mensagem da guarita**: a tela de detalhes de qualquer reserva mostra as instruções para quem
   vai usar a sala — retirar a chave na guarita ao chegar, verificar o ambiente, zelar pela
   conservação e devolver a chave ao final (`Reserva.mensagem_guarita`).
@@ -229,8 +236,8 @@ dia correspondente, não um controle solto.
   tempo real) estiver indisponível, isso nunca impede a reserva de ser encerrada nem a chave de
   ser liberada ao devolver — só o aviso instantâneo na tela é que não chega, e volta a funcionar
   assim que o Redis voltar (ver `apps/environments/signals.py`). As ações da guarita
-  (`retirar`/`devolver`/`repor`) também rodam em transação: reserva e chave são salvas juntas, sem
-  risco de ficar uma atualizada e a outra não.
+  (`retirar`/`devolver`) também rodam em transação: reserva e chave são salvas juntas, sem risco
+  de ficar uma atualizada e a outra não.
 
 ## Arquitetura e decisões
 

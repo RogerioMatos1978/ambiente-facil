@@ -25,10 +25,9 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "l
   expirada: "outline",
 };
 
-const chaveVariant: Record<string, "livre" | "ocupado" | "secondary" | "outline"> = {
+const chaveVariant: Record<string, "livre" | "ocupado" | "outline"> = {
   disponivel: "livre",
   ocupada: "ocupado",
-  devolvida: "secondary",
 };
 
 const STATUS_OPCOES: { value: StatusReserva; label: string }[] = [

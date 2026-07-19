@@ -13,7 +13,7 @@ executado manualmente:
 
 Não reenvia o alerta a cada execução: assim que notificada, a chave grava
 `atraso_notificado_em` e só é notificada de novo se for retirada de novo (o campo é
-limpo em `retirar`/`devolver`/`repor` — ver apps/keys/views.py).
+limpo em `retirar`/`devolver` — ver apps/keys/views.py).
 """
 
 import logging

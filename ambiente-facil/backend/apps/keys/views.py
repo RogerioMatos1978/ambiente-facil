@@ -16,8 +16,8 @@ from .serializers import ChaveSerializer
 
 
 class IsAdminOuVigilante(BasePermission):
-    """Acesso à Guarita de Chaves: administrador (tudo) ou vigilante (retirar/devolver/
-    repor). Usuário comum não tem acesso nenhum a esta API."""
+    """Acesso à Guarita de Chaves: administrador (tudo) ou vigilante (retirar/devolver).
+    Usuário comum não tem acesso nenhum a esta API."""
 
     message = "Apenas administradores ou vigilantes têm acesso à Guarita de Chaves."
 
@@ -34,13 +34,13 @@ class ChaveViewSet(
 ):
     """
     Painel da Guarita de Chaves — uma chave por ambiente, provisionada automaticamente.
-    Listagem/consulta e as ações retirar/devolver/repor: administrador ou vigilante.
+    Listagem/consulta e as ações retirar/devolver: administrador ou vigilante.
     Edição direta (PATCH/PUT, ex.: corrigir status manualmente): só administrador.
 
-    Ciclo normal: disponível --(retirar, vinculando a uma reserva do dia)--> ocupada
+    Ciclo único: disponível --(retirar, vinculando a uma reserva do dia)--> ocupada
     --(devolver)--> disponível de novo, já com a reserva encerrada e a sala liberada
-    (tudo em uma ação só). "repor" continua existindo só como ajuste manual de admin
-    para o caso raro de uma chave ficar parada em "devolvida" (ex.: PATCH direto).
+    (tudo em uma ação só, para qualquer perfil). Não existe ação "repor": nenhum
+    estado intermediário fica pendente de confirmação manual.
     """
 
     serializer_class = ChaveSerializer
@@ -76,7 +76,7 @@ class ChaveViewSet(
         if reserva.status not in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA):
             raise DRFValidationError({"detalhes": "Esta reserva não está mais ativa."})
         if chave.status != StatusChave.DISPONIVEL:
-            raise DRFValidationError({"detalhes": "Esta chave já está retirada ou aguardando ser reposta."})
+            raise DRFValidationError({"detalhes": "Esta chave já está retirada no momento."})
 
         chave.status = StatusChave.OCUPADA
         chave.reserva_atual = reserva
@@ -102,8 +102,8 @@ class ChaveViewSet(
         """
         Marca a chave como devolvida à guarita — e nesse mesmo passo encerra a reserva
         correspondente (mesmo que o horário programado ainda não tivesse terminado) e
-        libera tanto a sala quanto a chave para o próximo uso. Não existe mais um passo
-        manual separado de "repor": devolver já deixa tudo disponível de novo.
+        libera tanto a sala quanto a chave para o próximo uso. Não existe ação "repor"
+        para nenhum perfil (nem admin): devolver já deixa tudo disponível de novo.
 
         @transaction.atomic: reserva e chave são salvas juntas, numa transação só — se
         qualquer coisa der errado no meio do caminho, nada fica salvo pela metade (chave
@@ -145,32 +145,6 @@ class ChaveViewSet(
             "Chave",
             chave.id,
             descricao=f"Chave de '{chave.ambiente.nome}' devolvida na guarita — sala e chave disponíveis novamente.",
-            request=request,
-        )
-        return Response(ChaveSerializer(chave).data)
-
-    @action(detail=True, methods=["post"])
-    @transaction.atomic
-    def repor(self, request, ambiente_id=None):
-        """Confere e pendura a chave de volta, deixando-a disponível para a próxima reserva."""
-        chave = self.get_object()
-        if chave.status != StatusChave.DEVOLVIDA:
-            raise DRFValidationError({"detalhes": "Só é possível repor uma chave que já foi devolvida."})
-
-        chave.status = StatusChave.DISPONIVEL
-        chave.reserva_atual = None
-        chave.retirada_em = None
-        chave.retirada_por = None
-        chave.devolvida_em = None
-        chave.atraso_notificado_em = None
-        chave.save()
-
-        registrar(
-            request.user,
-            AcaoAuditoria.ATUALIZACAO,
-            "Chave",
-            chave.id,
-            descricao=f"Chave de '{chave.ambiente.nome}' reposta e disponível novamente.",
             request=request,
         )
         return Response(ChaveSerializer(chave).data)

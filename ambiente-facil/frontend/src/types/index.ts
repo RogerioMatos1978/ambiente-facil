@@ -152,7 +152,7 @@ export interface ConfiguracaoSistema {
   atualizado_em: string;
 }
 
-export type StatusChave = "disponivel" | "ocupada" | "devolvida";
+export type StatusChave = "disponivel" | "ocupada";
 
 export interface ReservaResumoGuarita {
   id: number;

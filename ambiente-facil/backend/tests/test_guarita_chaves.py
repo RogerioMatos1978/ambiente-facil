@@ -1,18 +1,19 @@
-"""Testes da Guarita de Chaves: provisionamento automático, ciclo retirar/devolver/
-repor amarrado a reservas do dia, e permissões (admin + vigilante only)."""
+"""Testes da Guarita de Chaves: provisionamento automático, ciclo retirar/devolver
+amarrado a reservas do dia (sem etapa "repor" — foi removida para todos os perfis), e
+permissões (admin + vigilante only)."""
 
 from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.core import management
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
 from apps.keys.models import Chave, StatusChave
 from apps.reservations.models import Reserva, StatusReserva
 
-from .utils_tempo import horario_futuro
+from .utils_tempo import horario_futuro, horario_passado
 
 pytestmark = pytest.mark.django_db
 
@@ -55,8 +56,8 @@ def test_vigilante_ve_reservas_de_hoje_no_ambiente(cliente_autenticado_vigilante
 def test_vigilante_pode_retirar_e_devolver_chave_encerrando_reserva(
     cliente_autenticado_vigilante, ambiente, usuario_comum
 ):
-    """Devolver já encerra a reserva e libera sala + chave num passo só (não há mais
-    um "repor" manual obrigatório no meio do ciclo normal)."""
+    """Devolver já encerra a reserva e libera sala + chave num passo só — não existe
+    ação "repor" para nenhum perfil."""
     reserva = _reserva_hoje(ambiente, usuario_comum)
     reserva.status = StatusReserva.CONFIRMADA
     reserva.save()
@@ -75,26 +76,6 @@ def test_vigilante_pode_retirar_e_devolver_chave_encerrando_reserva(
 
     reserva.refresh_from_db()
     assert reserva.status == StatusReserva.CONCLUIDA
-
-
-def test_repor_continua_disponivel_para_ajuste_manual_de_chave_devolvida(
-    cliente_autenticado_admin, cliente_autenticado_vigilante, ambiente, usuario_comum
-):
-    """"repor" vira um ajuste manual raro: só funciona se a chave estiver no estado
-    "devolvida" (ex.: setada via PATCH direto pelo admin), não depois de um "devolver"
-    normal, que já deixa tudo disponível de uma vez."""
-    reserva = _reserva_hoje(ambiente, usuario_comum)
-    url_retirar = reverse("chave-retirar", kwargs={"ambiente_id": ambiente.id})
-    cliente_autenticado_vigilante.post(url_retirar, {"reserva": reserva.id}, format="json")
-
-    url = reverse("chave-detail", kwargs={"ambiente_id": ambiente.id})
-    cliente_autenticado_admin.patch(url, {"status": "devolvida"}, format="json")
-
-    url_repor = reverse("chave-repor", kwargs={"ambiente_id": ambiente.id})
-    resp_repor = cliente_autenticado_vigilante.post(url_repor, {}, format="json")
-    assert resp_repor.status_code == 200
-    assert resp_repor.data["status"] == "disponivel"
-    assert resp_repor.data["reserva_atual"] is None
 
 
 def test_devolver_chave_ja_disponivel_e_rejeitado(cliente_autenticado_vigilante, ambiente):
@@ -240,3 +221,98 @@ def test_devolver_finaliza_reserva_mesmo_se_broadcast_em_tempo_real_falhar(
     chave = Chave.objects.get(ambiente=ambiente)
     assert chave.status == StatusChave.DISPONIVEL
     assert chave.reserva_atual is None
+
+
+def test_acao_repor_foi_removida(cliente_autenticado_vigilante, ambiente):
+    """A rota/ação "repor" não existe mais para nenhum perfil — nem reverse()
+    encontra a URL, já que a @action correspondente foi removida do ChaveViewSet."""
+    with pytest.raises(NoReverseMatch):
+        reverse("chave-repor", kwargs={"ambiente_id": ambiente.id})
+
+
+def test_status_devolvida_nao_e_mais_uma_opcao_valida(cliente_autenticado_admin, ambiente):
+    """"devolvida" era o estado intermediário que só existia para o fluxo de "repor".
+    Removida a ação, o status deixou de ser uma opção válida — mesmo para admin via
+    edição direta (PATCH)."""
+    cliente_autenticado_admin.get(reverse("chave-list"))  # garante provisionamento
+    url = reverse("chave-detail", kwargs={"ambiente_id": ambiente.id})
+    response = cliente_autenticado_admin.patch(url, {"status": "devolvida"}, format="json")
+    assert response.status_code == 400
+
+
+def test_reserva_com_chave_retirada_e_concluida_automaticamente_ao_passar_o_tempo(
+    cliente_autenticado_vigilante, ambiente, usuario_comum
+):
+    """
+    Invariante central: nenhuma reserva pode ficar "pendente"/"confirmada" para
+    sempre. Se a chave foi retirada mas ninguém devolve na guarita, assim que o
+    horário da reserva passa, o job periódico concluir_reservas_passadas (ver
+    apps/reservations/management/commands/concluir_reservas_passadas.py, agendado
+    junto com o job de alerta de chave atrasada) encerra a reserva de qualquer jeito —
+    a chave em si continua "ocupada" (só o vigilante devolvendo fisicamente libera a
+    chave), mas a agenda nunca fica aberta indefinidamente.
+    """
+    reserva = _reserva_hoje(ambiente, usuario_comum)
+    reserva.status = StatusReserva.CONFIRMADA
+    reserva.data_fim = timezone.now() - timedelta(hours=1)
+    reserva.save()
+
+    url_retirar = reverse("chave-retirar", kwargs={"ambiente_id": ambiente.id})
+    cliente_autenticado_vigilante.post(url_retirar, {"reserva": reserva.id}, format="json")
+
+    management.call_command("concluir_reservas_passadas")
+
+    reserva.refresh_from_db()
+    assert reserva.status == StatusReserva.CONCLUIDA
+
+    # A chave física continua ocupada — só "devolver" na guarita libera de fato — mas
+    # a agenda (reserva) já não está mais aberta.
+    chave = Chave.objects.get(ambiente=ambiente)
+    assert chave.status == StatusChave.OCUPADA
+    assert chave.reserva_atual_id == reserva.id
+
+
+def test_nenhuma_reserva_pendente_ou_confirmada_sobrevive_ao_fim_do_periodo(
+    cliente_autenticado_vigilante, ambiente, usuario_comum
+):
+    """Varredura ampla da invariante pedida: crie reservas em vários estados (com e
+    sem chave retirada, algumas já viradas para o passado) e confirme que, depois de
+    rodar os dois jobs de fechamento, nenhuma reserva do ambiente permanece aberta
+    ("pendente"/"confirmada") com o horário já encerrado. Usa horario_passado() (ontem
+    10:00, ver tests/utils_tempo.py) com dois horários distintos no mesmo dia para não
+    conflitar entre si nem depender de "agora" (evita flakiness perto da virada do dia
+    ou do limite de 22h da janela permitida)."""
+    inicio_1 = horario_passado()
+    sem_chave = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Sem chave retirada",
+        data_inicio=inicio_1, data_fim=inicio_1 + timedelta(hours=1),
+        status=StatusReserva.CONFIRMADA,
+        reservado_para_categoria="professor", reservado_para_nome="Bia", reservado_para_telefone="62999991111",
+    )
+    inicio_2 = horario_passado() + timedelta(hours=3)
+    com_chave_nao_devolvida = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Com chave retirada, não devolvida a tempo",
+        data_inicio=inicio_2, data_fim=inicio_2 + timedelta(hours=1),
+        status=StatusReserva.CONFIRMADA,
+        reservado_para_categoria="professor", reservado_para_nome="Caio", reservado_para_telefone="62999992222",
+    )
+
+    url_retirar = reverse("chave-retirar", kwargs={"ambiente_id": ambiente.id})
+    cliente_autenticado_vigilante.post(url_retirar, {"reserva": com_chave_nao_devolvida.id}, format="json")
+
+    url_devolver = reverse("chave-devolver", kwargs={"ambiente_id": ambiente.id})
+    cliente_autenticado_vigilante.post(url_devolver, {}, format="json")
+
+    management.call_command("concluir_reservas_passadas")
+
+    abertas_e_vencidas = Reserva.objects.filter(
+        ambiente=ambiente,
+        status__in=[StatusReserva.PENDENTE, StatusReserva.CONFIRMADA],
+        data_fim__lte=timezone.now(),
+    )
+    assert not abertas_e_vencidas.exists()
+
+    sem_chave.refresh_from_db()
+    com_chave_nao_devolvida.refresh_from_db()
+    assert sem_chave.status == StatusReserva.CONCLUIDA
+    assert com_chave_nao_devolvida.status == StatusReserva.CONCLUIDA
