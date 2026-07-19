@@ -36,10 +36,9 @@ auditoria completa e exportação de relatórios.
   reserva sozinhos se ninguém confirmar presença dentro da tolerância configurada (padrão 15 min),
   evitando salas reservadas e vazias. Roda em segundo plano automaticamente (APScheduler), sem precisar
   de cron externo; também pode ser disparado manualmente com `python manage.py liberar_no_show`.
-- **Reserva rápida + QR code por sala**: botão "Reservar agora" no dashboard cria uma reserva
-  instantânea (15/30/45/60/90/120 min) em 1 clique. Cada ambiente tem um QR code (`/ambientes/qrcodes`,
-  pronto para imprimir e colar na porta) que leva à página `/checkin/<id>` — mostra se a sala está
-  livre/ocupada, permite reservar na hora ou confirmar check-in pelo celular.
+- **Reserva rápida + QR code por sala**: cada ambiente tem um QR code (`/ambientes/qrcodes`, pronto
+  para imprimir e colar na porta) que leva à página `/checkin/<id>` — mostra se a sala está
+  livre/ocupada, permite reservar na hora (15/30/45/60/90/120 min) ou confirmar check-in pelo celular.
 - **Cards de sala clicáveis**: no painel em tempo real e na tela de Ambientes, clicar num ambiente
   livre abre direto o formulário de nova reserva já com o ambiente selecionado.
 - **Totalmente responsivo para celular**: menu lateral vira uma gaveta deslizante (ícone de menu no
@@ -160,8 +159,8 @@ backend — configurável via `NO_SHOW_SCHEDULER_ATIVO` e `NO_SHOW_INTERVALO_MIN
 Também dá para rodar manualmente: `python manage.py liberar_no_show`.
 
 **Reserva rápida + QR code.** `POST /api/v1/reservations/rapida/` cria uma reserva começando agora,
-por uma duração curta (15 a 120 min) — é o que o botão "Reservar agora" do dashboard e a página
-`/checkin/<ambiente_id>` usam. Cada ambiente expõe um QR code em
+por uma duração curta (15 a 120 min) — é o que a página `/checkin/<ambiente_id>` usa (destino do
+QR code de cada sala). Cada ambiente expõe um QR code em
 `GET /api/v1/environments/<id>/qrcode/` (público, sem autenticação — só contém um link) apontando
 para essa página; a tela `/ambientes/qrcodes` reúne o QR code de todos os ambientes prontos para
 impressão e para colar na porta de cada sala. Requer `FRONTEND_URL` configurado corretamente no

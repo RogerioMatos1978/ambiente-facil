@@ -4,7 +4,6 @@ import { Building2, CalendarCheck2, ClipboardList, Percent } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { PainelAmbientes } from "@/components/dashboard/painel-ambientes";
-import { ReservaRapida } from "@/components/dashboard/reserva-rapida";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { Ambiente, Reserva } from "@/types";
@@ -51,27 +50,26 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <div className="lg:col-span-2">
+          <PainelAmbientes />
+        </div>
+
+        <Card>
           <CardHeader>
-            <CardTitle>Reservas na semana</CardTitle>
+            <CardTitle className="text-base">Reservas na semana</CardTitle>
           </CardHeader>
-          <CardContent className="h-72">
+          <CardContent className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dadosSemana}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="dia" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
+                <XAxis dataKey="dia" tickLine={false} axisLine={false} fontSize={11} />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={11} width={24} />
                 <Tooltip cursor={{ fill: "hsl(var(--accent))" }} />
                 <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        <div className="space-y-6">
-          <ReservaRapida aoReservar={carregar} />
-          <PainelAmbientes />
-        </div>
       </div>
     </div>
   );
