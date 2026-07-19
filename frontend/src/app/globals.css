@@ -13,7 +13,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 20% 15%;
 
-    --primary: 243 75% 59%;
+    /* Identidade SESI/SENAI: azul institucional #0E4194 */
+    --primary: 217 83% 32%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 20% 96%;
@@ -22,21 +23,23 @@
     --muted: 220 20% 96%;
     --muted-foreground: 220 10% 46%;
 
-    --accent: 243 75% 96%;
-    --accent-foreground: 243 75% 40%;
+    --accent: 217 75% 95%;
+    --accent-foreground: 217 83% 30%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --livre: 152 60% 90%;
-    --livre-foreground: 152 60% 24%;
+    /* Verde da identidade SESI/SENAI #68B42D — status "livre" */
+    --livre: 94 55% 90%;
+    --livre-foreground: 94 60% 24%;
 
-    --ocupado: 0 70% 92%;
-    --ocupado-foreground: 0 65% 40%;
+    /* Laranja da identidade SESI/SENAI #E8490F — status "ocupado" */
+    --ocupado: 16 80% 92%;
+    --ocupado-foreground: 16 85% 40%;
 
     --border: 220 15% 90%;
     --input: 220 15% 90%;
-    --ring: 243 75% 59%;
+    --ring: 217 83% 32%;
 
     --radius: 0.6rem;
   }
@@ -51,8 +54,8 @@
     --popover: 222 26% 11%;
     --popover-foreground: 220 20% 92%;
 
-    --primary: 243 75% 65%;
-    --primary-foreground: 224 30% 10%;
+    --primary: 217 75% 58%;
+    --primary-foreground: 222 40% 10%;
 
     --secondary: 222 20% 16%;
     --secondary-foreground: 220 20% 92%;
@@ -60,21 +63,21 @@
     --muted: 222 20% 16%;
     --muted-foreground: 220 10% 65%;
 
-    --accent: 243 40% 20%;
-    --accent-foreground: 243 80% 85%;
+    --accent: 217 40% 20%;
+    --accent-foreground: 217 70% 82%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --livre: 152 40% 16%;
-    --livre-foreground: 152 55% 75%;
+    --livre: 94 35% 16%;
+    --livre-foreground: 94 50% 75%;
 
-    --ocupado: 0 45% 18%;
-    --ocupado-foreground: 0 60% 78%;
+    --ocupado: 16 45% 18%;
+    --ocupado-foreground: 16 70% 75%;
 
     --border: 222 20% 18%;
     --input: 222 20% 18%;
-    --ring: 243 75% 65%;
+    --ring: 217 75% 58%;
   }
 }
 

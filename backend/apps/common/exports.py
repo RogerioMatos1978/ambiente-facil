@@ -57,7 +57,7 @@ def exportar_pdf(nome_arquivo: str, titulo: str, cabecalhos: list, linhas: list)
     tabela.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4f46e5")),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0E4194")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
