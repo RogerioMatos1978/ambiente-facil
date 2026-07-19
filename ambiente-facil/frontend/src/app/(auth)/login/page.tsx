@@ -64,7 +64,9 @@ function LoginForm() {
             {carregando ? "Entrando..." : "Entrar"}
           </Button>
         </form>
-
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Demonstração: admin / Admin@123 (administrador) ou professor / Usuario@123 (usuário)
+        </p>
       </CardContent>
     </Card>
   );
