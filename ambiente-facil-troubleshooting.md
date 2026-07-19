@@ -249,3 +249,18 @@ salvar o refresh token novo devolvido pelo backend a cada renovação.
 **Novo: botão "Atualizar site".** Ícone de recarregar na barra superior de toda página do painel
 (e na página de check-in/QR code, que fica fora dessa barra) — dá um reload completo da página por
 dentro do sistema, sem precisar do atalho do navegador. Disponível para todos os perfis de usuário.
+
+**Correção nº2: F5/Ctrl+R ainda voltava para o login (mesmo com token de acesso válido).**
+A correção anterior resolveu a espera pela reidratação do zustand/persist, mas havia uma segunda
+corrida de hidratação, mais sutil, por baixo: o hook reativo (`useAuthStore((s) => s.accessToken)`,
+que usa `useSyncExternalStore` do React) é obrigado a usar o "snapshot do servidor" (sem token) na
+primeiríssima renderização depois da hidratação — mesmo com a store já tendo o token de verdade
+guardado internamente — e só se corrige numa re-renderização logo em seguida. Se o efeito de
+redirecionamento decidir com base nesse valor reativo (ainda `null` por uma fração de segundo), ele
+manda para o `/login` por engano, e como a navegação do Next.js já dispara nesse instante, a
+correção que vem logo depois chega tarde demais para desfazer. Sintoma confirmado pelo usuário via
+DevTools → Network: uma chamada `fetch` para `login?next=...` com status 200 (a navegação
+indevida), seguida de chamadas normais e autenticadas com sucesso (provando que o token era válido
+o tempo todo). Corrigido em `hooks/use-auth-guard.ts` lendo o token com
+`useAuthStore.getState().accessToken` (leitura direta, sempre atual, sem essa limitação de
+snapshot) no momento de decidir o redirecionamento, em vez do valor reativo do hook.
