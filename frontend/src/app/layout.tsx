@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { ColorThemeProvider } from "@/providers/color-theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
@@ -13,8 +14,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-br" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster />
+          <ColorThemeProvider>
+            {children}
+            <Toaster />
+          </ColorThemeProvider>
         </ThemeProvider>
       </body>
     </html>

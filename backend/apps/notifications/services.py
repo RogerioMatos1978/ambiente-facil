@@ -68,10 +68,17 @@ def montar_mensagem_whatsapp(reserva) -> str:
 
 
 def montar_link_whatsapp(reserva) -> dict:
-    """Retorna telefone, mensagem e link wa.me prontos para uso no botão do frontend."""
+    """
+    Retorna telefone, mensagem e link prontos para uso no botão do frontend.
+
+    Usa o esquema `whatsapp://send` (em vez de `https://wa.me/`) para abrir
+    diretamente o aplicativo do WhatsApp instalado e logado no computador,
+    sem passar pelo navegador/WhatsApp Web. Requer o WhatsApp Desktop
+    instalado na máquina que aciona o botão.
+    """
     telefone = reserva.solicitante.whatsapp_e164
     if telefone and not telefone.startswith(settings.WHATSAPP_DEFAULT_COUNTRY_CODE) and len(telefone) <= 11:
         telefone = f"{settings.WHATSAPP_DEFAULT_COUNTRY_CODE}{telefone}"
     mensagem = montar_mensagem_whatsapp(reserva)
-    link = f"https://wa.me/{telefone}?text={quote(mensagem)}" if telefone else None
+    link = f"whatsapp://send?phone={telefone}&text={quote(mensagem)}" if telefone else None
     return {"telefone": telefone, "mensagem": mensagem, "link": link}

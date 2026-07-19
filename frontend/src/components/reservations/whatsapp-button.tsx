@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-/** Busca telefone/mensagem prontos no backend e abre o WhatsApp Web/App via wa.me com o texto preenchido. */
+/**
+ * Busca telefone/mensagem prontos no backend e abre o aplicativo do WhatsApp
+ * instalado e logado no computador (esquema whatsapp://send, não o WhatsApp
+ * Web). Usa location.href em vez de window.open: para esquemas de URL
+ * personalizados o navegador só aciona o handler do sistema operacional de
+ * forma confiável se a navegação acontecer na própria aba.
+ */
 export function BotaoWhatsApp({ reservaId }: { reservaId: number }) {
   const [carregando, setCarregando] = useState(false);
   const { toast } = useToast();
@@ -22,7 +28,7 @@ export function BotaoWhatsApp({ reservaId }: { reservaId: number }) {
         });
         return;
       }
-      window.open(data.link, "_blank", "noopener,noreferrer");
+      window.location.href = data.link;
     } finally {
       setCarregando(false);
     }

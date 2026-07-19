@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.environments.models import Ambiente
@@ -48,6 +49,18 @@ class ReservaSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        # Reservas já concluídas, canceladas ou expiradas (ou cujo período já passou) são
+        # somente leitura: nenhum campo pode mais ser alterado, nem por administrador.
+        if self.instance is not None:
+            editavel = (
+                self.instance.status in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA)
+                and self.instance.data_fim > timezone.now()
+            )
+            if not editavel:
+                raise serializers.ValidationError(
+                    {"detalhes": "Esta reserva já foi concluída, cancelada ou expirada e não pode mais ser alterada."}
+                )
+
         instancia = Reserva(
             id=self.instance.id if self.instance else None,
             ambiente=attrs.get("ambiente", getattr(self.instance, "ambiente", None)),

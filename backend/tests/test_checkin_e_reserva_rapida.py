@@ -164,3 +164,27 @@ def test_relatorio_usuario_comum_nao_ve_solicitantes(cliente_autenticado_usuario
 
     assert response.status_code == 200
     assert response.data["por_solicitante"] == []
+
+
+def test_concluir_reservas_passadas_marca_como_concluida(ambiente, usuario_comum):
+    from django.core.management import call_command
+
+    from apps.reservations.models import Reserva, StatusReserva
+
+    inicio = timezone.now() - timedelta(hours=3)
+    passada = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Aula encerrada",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+    futura_inicio = timezone.now() + timedelta(hours=1)
+    futura = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Aula futura",
+        data_inicio=futura_inicio, data_fim=futura_inicio + timedelta(hours=1),
+    )
+
+    call_command("concluir_reservas_passadas")
+
+    passada.refresh_from_db()
+    futura.refresh_from_db()
+    assert passada.status == StatusReserva.CONCLUIDA
+    assert futura.status == StatusReserva.CONFIRMADA

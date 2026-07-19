@@ -83,3 +83,78 @@ def test_conflito_de_horario_via_api(cliente_autenticado_usuario, ambiente, usua
     response = cliente_autenticado_usuario.post(url, payload, format="json")
     assert response.status_code == 400
     assert "conflito" in response.data["detalhes"]
+
+
+def test_usuario_comum_nao_pode_cancelar_propria_reserva(cliente_autenticado_usuario, ambiente, usuario_comum):
+    from apps.reservations.models import Reserva
+
+    inicio = timezone.now() + timedelta(hours=1)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+    url = reverse("reserva-cancelar", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_usuario.post(url, {}, format="json")
+    assert response.status_code == 403
+
+
+def test_admin_pode_cancelar_reserva_de_qualquer_usuario(
+    cliente_autenticado_admin, ambiente, usuario_comum
+):
+    from apps.reservations.models import Reserva, StatusReserva
+
+    inicio = timezone.now() + timedelta(hours=1)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+    url = reverse("reserva-cancelar", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_admin.post(url, {}, format="json")
+    assert response.status_code == 200
+    reserva.refresh_from_db()
+    assert reserva.status == StatusReserva.CANCELADA
+
+
+def test_usuario_comum_nao_pode_editar_propria_reserva(cliente_autenticado_usuario, ambiente, usuario_comum):
+    from apps.reservations.models import Reserva
+
+    inicio = timezone.now() + timedelta(hours=1)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=usuario_comum, titulo="Reunião",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+    )
+    url = reverse("reserva-detail", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_usuario.patch(url, {"titulo": "Outro título"}, format="json")
+    assert response.status_code == 403
+
+
+def test_admin_nao_pode_editar_reserva_concluida(cliente_autenticado_admin, ambiente, admin_user):
+    from apps.reservations.models import Reserva, StatusReserva
+
+    inicio = timezone.now() - timedelta(hours=3)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Reunião passada",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1), status=StatusReserva.CONCLUIDA,
+    )
+    url = reverse("reserva-detail", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_admin.patch(url, {"titulo": "Outro título"}, format="json")
+    assert response.status_code == 400
+
+    url_cancelar = reverse("reserva-cancelar", kwargs={"pk": reserva.id})
+    response_cancelar = cliente_autenticado_admin.post(url_cancelar, {}, format="json")
+    assert response_cancelar.status_code == 400
+
+
+def test_cancelar_reserva_com_periodo_ja_encerrado_e_bloqueado(
+    cliente_autenticado_admin, ambiente, admin_user
+):
+    from apps.reservations.models import Reserva, StatusReserva
+
+    inicio = timezone.now() - timedelta(hours=3)
+    reserva = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Reunião passada",
+        data_inicio=inicio, data_fim=inicio + timedelta(hours=1), status=StatusReserva.CONFIRMADA,
+    )
+    url = reverse("reserva-cancelar", kwargs={"pk": reserva.id})
+    response = cliente_autenticado_admin.post(url, {}, format="json")
+    assert response.status_code == 400

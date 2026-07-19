@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { BotaoWhatsApp } from "./whatsapp-button";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/auth";
 import type { Reserva } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,6 +26,7 @@ export function ReservationDetailsDialog({
   reserva, aberto, aoFechar, aoAtualizar,
 }: { reserva: Reserva | null; aberto: boolean; aoFechar: () => void; aoAtualizar: () => void }) {
   const { toast } = useToast();
+  const isAdmin = useAuthStore((s) => s.isAdmin());
   const [motivo, setMotivo] = useState("");
   const [cancelando, setCancelando] = useState(false);
   const [confirmandoCheckin, setConfirmandoCheckin] = useState(false);
@@ -38,8 +40,16 @@ export function ReservationDetailsDialog({
       toast({ title: "Reserva cancelada", description: "A reserva foi cancelada com sucesso." });
       aoAtualizar();
       aoFechar();
-    } catch {
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível cancelar a reserva." });
+    } catch (err: unknown) {
+      interface ErroApi {
+        response?: { data?: { detail?: string } };
+      }
+      const detalhe = (err as ErroApi)?.response?.data?.detail;
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: detalhe || "Não foi possível cancelar a reserva.",
+      });
     } finally {
       setCancelando(false);
     }
@@ -58,7 +68,11 @@ export function ReservationDetailsDialog({
     }
   }
 
-  const podeCancel = reserva.status === "confirmada" || reserva.status === "pendente";
+  // Cancelar é privilégio de administrador e só é possível enquanto a reserva ainda
+  // está dentro do período vigente (backend aplica a mesma regra em /cancelar/).
+  const dentroDoPeriodo = new Date(reserva.data_fim).getTime() > Date.now();
+  const podeCancel =
+    isAdmin && dentroDoPeriodo && (reserva.status === "confirmada" || reserva.status === "pendente");
   const aguardandoCheckin = reserva.precisa_checkin;
   const checkinConfirmado = Boolean(reserva.checkin_confirmado_em);
 

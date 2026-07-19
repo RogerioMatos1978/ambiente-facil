@@ -5,12 +5,13 @@ from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 
 from apps.audit.models import AcaoAuditoria, registrar
 from apps.common.exceptions import exception_handler  # noqa: F401 (garante import cedo)
 from apps.common.exports import exportar_csv, exportar_pdf, exportar_xlsx
-from apps.common.permissions import IsOwnerOrAdmin
+from apps.common.permissions import IsAdmin
 from apps.notifications.services import montar_link_whatsapp
 
 from .filters import ReservaFilter
@@ -21,12 +22,15 @@ from .serializers import CancelarReservaSerializer, ReservaRapidaSerializer, Res
 class ReservaViewSet(viewsets.ModelViewSet):
     """
     CRUD de reservas com prevenção de conflitos de horário (ver Reserva.clean()).
-    Usuários comuns só editam/cancelam suas próprias reservas; administradores gerenciam todas.
+    Qualquer usuário autenticado pode solicitar (criar) uma reserva; editar, excluir e
+    cancelar reservas já existentes é privilégio exclusivo de administradores. Reservas
+    cujo período já passou são concluídas automaticamente (ver management command
+    `concluir_reservas_passadas`) e deixam de aceitar qualquer alteração.
     """
 
     queryset = Reserva.objects.select_related("ambiente", "solicitante").all()
     serializer_class = ReservaSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+    permission_classes = [IsAuthenticated]
     filterset_class = ReservaFilter
     search_fields = ["titulo", "descricao", "ambiente__nome"]
     ordering_fields = ["data_inicio", "data_fim", "criado_em"]
@@ -37,6 +41,16 @@ class ReservaViewSet(viewsets.ModelViewSet):
         if self.request.user.is_admin:
             return qs
         return qs.filter(solicitante=self.request.user)
+
+    def get_permissions(self):
+        """
+        Criar, listar e visualizar reservas fica aberto a qualquer usuário autenticado
+        (o escopo por dono já é aplicado em get_queryset). Editar, excluir ou cancelar uma
+        reserva existente é privilégio exclusivo de administradores.
+        """
+        if self.action in {"update", "partial_update", "destroy", "cancelar"}:
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         reserva = serializer.save(solicitante=self.request.user)
@@ -61,6 +75,10 @@ class ReservaViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
+        if instance.status not in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA):
+            raise DRFValidationError(
+                {"detalhes": "Esta reserva já foi concluída, cancelada ou expirada e não pode mais ser alterada."}
+            )
         registrar(
             self.request.user,
             AcaoAuditoria.EXCLUSAO,
@@ -73,8 +91,22 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def cancelar(self, request, pk=None):
-        """Cancela uma reserva (soft cancel: mantém o registro, muda o status)."""
+        """
+        Cancela uma reserva (soft cancel: mantém o registro, muda o status) e libera o
+        ambiente para novos agendamentos. Só é permitido enquanto a reserva ainda está
+        dentro do período vigente (pendente/confirmada e com o horário de término no
+        futuro) — reservas já concluídas, canceladas ou expiradas não podem ser alteradas.
+        """
         reserva = self.get_object()
+        if reserva.status not in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA):
+            return Response(
+                {"detail": "Esta reserva já foi concluída, cancelada ou expirada e não pode mais ser alterada."},
+                status=400,
+            )
+        if reserva.data_fim <= timezone.now():
+            return Response(
+                {"detail": "Não é possível cancelar uma reserva cujo período já passou."}, status=400
+            )
         serializer = CancelarReservaSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

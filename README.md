@@ -18,17 +18,19 @@ auditoria completa e exportação de relatórios.
 - Cadastro de ambientes (tipo, capacidade, localização, recursos, foto).
 - Cadastro de usuários (admin) com telefone para WhatsApp e departamento.
 - Reservas com **prevenção automática de conflitos de horário** (validada no modelo e na API).
+- Qualquer usuário pode solicitar (criar) uma reserva; **editar, excluir ou cancelar reservas já existentes é exclusivo de administradores**. Reservas cujo período já terminou são concluídas automaticamente e ficam somente leitura (ver seção "Check-in automático e reserva rápida").
 - Cancelamento de reservas com motivo e histórico de quem cancelou.
 - Painel de ambientes livres/ocupados **em tempo real via WebSocket** (Django Channels + Redis).
 - Calendário no frontend com visões **Dia / Semana / Mês / Agenda**, inspirado no Outlook e Google Calendar.
 - Dashboard com indicadores (KPIs) e gráfico de reservas da semana.
 - Notificação automática por e-mail ao criar/confirmar/cancelar uma reserva.
-- Botão "Enviar WhatsApp" que monta a mensagem e abre `wa.me` com o texto preenchido.
+- Botão "Enviar WhatsApp" que monta a mensagem e abre o **aplicativo do WhatsApp instalado e logado no computador** (esquema `whatsapp://send`, não o WhatsApp Web) — requer o WhatsApp Desktop instalado na máquina que aciona o botão.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
 - Exportação de reservas em **CSV, Excel (XLSX) e PDF**.
 - Página de **Relatórios** (`/relatorios`): KPIs (total, confirmadas, taxa de no-show, duração média), gráfico de reservas por dia, reservas por status, ranking de ambientes mais reservados e (para administradores) ranking de quem mais reservou — tudo filtrável por período/ambiente/status e exportável em CSV/Excel/PDF.
 - Tema claro/escuro (persistido) em todo o frontend.
+- **Seletor de cores institucionais** (ícone de paleta na barra superior): 5 temas baseados no Manual de Marcas do Sistema FIEG (SESI/SENAI/IEL Goiás, ago/2024). O padrão "SESI SENAI" usa o azul institucional `#164194`; os temas SESI (`#52AE32` verde), SENAI (`#E84910` laranja), IEL (`#6CC2BA` verde-água) e Sistema FIEG (`#008BD2` azul claro) trocam a cor dominante do sistema inteiro (botões, menu ativo, badges, foco) para essa cor de detalhe da marca escolhida. Funciona em conjunto com o tema claro/escuro e a escolha fica salva no navegador.
 - API documentada com OpenAPI/Swagger (`/api/docs`) e Redoc (`/api/redoc`).
 - Testes automatizados (pytest) cobrindo conflito de horários, RBAC e autenticação.
 - Rate limiting no login e em escritas de reservas, CORS/CSRF configurados, logs rotativos.
@@ -89,6 +91,7 @@ docker compose -f docker-compose.prod.yml up -d --build
   `python -c "import secrets; print(secrets.token_urlsafe(50))"` antes de usar em produção.
 - O backend roda com Gunicorn + worker ASGI (`uvicorn.workers.UvicornWorker`), necessário para o
   WebSocket do painel em tempo real funcionar também em produção (não só a API REST).
+- Se editar o `.env` depois que os containers já estão no ar (ex.: mudar `FRONTEND_URL`), `docker compose restart backend` **não é suficiente** — ele reinicia o mesmo container sem reler o `.env`. Use `docker compose -f docker-compose.prod.yml up -d --force-recreate backend` para recriar o container com as variáveis atualizadas. Para conferir o que o container está usando de fato: `docker compose -f docker-compose.prod.yml exec backend printenv FRONTEND_URL`.
 
 ## Rodando sem Docker
 
@@ -158,6 +161,15 @@ ambientes ficam com status "aguardando check-in"; se ninguém confirmar presenç
 (status `expirada`) por um agendador em segundo plano (APScheduler, inicia junto com o processo do
 backend — configurável via `NO_SHOW_SCHEDULER_ATIVO` e `NO_SHOW_INTERVALO_MINUTOS` no `.env`).
 Também dá para rodar manualmente: `python manage.py liberar_no_show`.
+
+**Conclusão automática e regras de alteração.** Um segundo job em segundo plano (mesmo
+agendador/intervalo do item acima) roda `python manage.py concluir_reservas_passadas`
+periodicamente: toda reserva pendente/confirmada cujo horário de término já passou vira
+`concluída` automaticamente. A partir daí ela é somente leitura — não pode mais ser editada,
+excluída ou cancelada, nem por administrador. Além disso, **editar, excluir ou cancelar uma
+reserva já existente passou a ser privilégio exclusivo de administradores**; qualquer usuário
+autenticado ainda pode solicitar (criar) uma reserva normalmente, mas só um admin pode alterá-la
+ou liberar a sala cancelando-a — e só enquanto ela ainda estiver dentro do período vigente.
 
 **Reserva rápida + QR code.** `POST /api/v1/reservations/rapida/` cria uma reserva começando agora,
 por uma duração curta (15 a 120 min) — é o que a página `/checkin/<ambiente_id>` usa (destino do
