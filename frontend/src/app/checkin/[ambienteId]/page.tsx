@@ -13,6 +13,7 @@ import type { Ambiente, Reserva } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, Clock, MapPin, Users, ArrowLeft } from "lucide-react";
+import { RefreshButton } from "@/components/layout/refresh-button";
 
 const DURACOES = [
   { minutos: 15, rotulo: "15 min" },
@@ -109,9 +110,12 @@ export default function CheckinAmbientePage() {
 
   return (
     <div className="mx-auto min-h-screen max-w-md space-y-4 p-4">
-      <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Painel completo
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Painel completo
+        </Button>
+        <RefreshButton />
+      </div>
 
       <Card>
         <CardHeader className="space-y-2">

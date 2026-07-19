@@ -23,7 +23,13 @@ async function renovarToken(): Promise<string | null> {
   if (!refreshToken) return null;
   try {
     const { data } = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh/`, { refresh: refreshToken });
-    useAuthStore.getState().setTokens(data.access, refreshToken);
+    // O backend usa ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION (config/settings/base.py):
+    // a cada renovação, o refresh token antigo é invalidado e um novo é devolvido em
+    // `data.refresh`. É preciso guardar esse novo refresh token (não o antigo) — senão a
+    // PRÓXIMA renovação usa um token já na blacklist, falha, e derruba o usuário para o
+    // /login mesmo com a sessão "válida" (era isso que causava logout ao dar F5/Ctrl+R
+    // depois que o access token expirava uma primeira vez).
+    useAuthStore.getState().setTokens(data.access, data.refresh ?? refreshToken);
     return data.access as string;
   } catch {
     useAuthStore.getState().logout();

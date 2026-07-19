@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "./theme-toggle";
 import { ColorThemeSwitcher } from "./color-theme-switcher";
+import { RefreshButton } from "./refresh-button";
 import { MobileNav } from "./mobile-nav";
 import { useAuthStore } from "@/store/auth";
 import { LogOut } from "lucide-react";
@@ -26,6 +27,7 @@ export function Topbar({ titulo }: { titulo: string }) {
         <h1 className="truncate text-base font-semibold sm:text-lg">{titulo}</h1>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <RefreshButton />
         <ColorThemeSwitcher />
         <ThemeToggle />
         <DropdownMenu>
