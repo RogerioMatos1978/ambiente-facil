@@ -38,7 +38,6 @@ class ReservaSerializer(serializers.ModelSerializer):
             "motivo_cancelamento",
             "cancelado_por",
             "cancelado_em",
-            "notificar_email",
             "checkin_confirmado_em",
             "precisa_checkin",
             "prazo_checkin",

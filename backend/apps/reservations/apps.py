@@ -23,8 +23,6 @@ class ReservationsConfig(AppConfig):
     verbose_name = "Reservas"
 
     def ready(self):
-        import apps.reservations.signals  # noqa
-
         comando_atual = sys.argv[1] if len(sys.argv) > 1 else ""
         if comando_atual in _COMANDOS_SEM_AGENDADOR:
             return

@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Ambiente } from "@/types";
@@ -43,7 +42,6 @@ export function ReservationFormDialog({
     descricao: "",
     data_inicio: paraDatetimeLocal(inicioPadrao),
     data_fim: paraDatetimeLocal(fimPadrao),
-    notificar_email: true,
   });
 
   useEffect(() => {
@@ -55,7 +53,6 @@ export function ReservationFormDialog({
       descricao: "",
       data_inicio: paraDatetimeLocal(inicioPadrao),
       data_fim: paraDatetimeLocal(fimPadrao),
-      notificar_email: true,
     });
     setErro(null);
   }, [aberto, ambienteIdPadrao, inicioPadrao, fimPadrao]);
@@ -71,7 +68,6 @@ export function ReservationFormDialog({
         descricao: form.descricao,
         data_inicio: new Date(form.data_inicio).toISOString(),
         data_fim: new Date(form.data_fim).toISOString(),
-        notificar_email: form.notificar_email,
       });
       toast({ title: "Reserva criada", description: "A reserva foi registrada com sucesso." });
       aoCriar();
@@ -160,17 +156,6 @@ export function ReservationFormDialog({
               id="descricao"
               value={form.descricao}
               onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-            />
-          </div>
-
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <div>
-              <Label>Notificar por e-mail</Label>
-              <p className="text-xs text-muted-foreground">Envia e-mail automático de confirmação/cancelamento.</p>
-            </div>
-            <Switch
-              checked={form.notificar_email}
-              onCheckedChange={(v) => setForm((f) => ({ ...f, notificar_email: v }))}
             />
           </div>
 

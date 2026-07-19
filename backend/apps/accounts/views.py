@@ -28,7 +28,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all().order_by("first_name")
     filterset_fields = ["papel", "ativo_institucional", "departamento"]
-    search_fields = ["first_name", "last_name", "username", "email"]
+    search_fields = ["first_name", "last_name", "username", "telefone"]
 
     def get_serializer_class(self):
         if self.action == "create":

@@ -32,7 +32,6 @@ class Reserva(models.Model):
         related_name="reservas_canceladas",
     )
     cancelado_em = models.DateTimeField(null=True, blank=True)
-    notificar_email = models.BooleanField(default=True)
 
     checkin_confirmado_em = models.DateTimeField(
         null=True,

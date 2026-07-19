@@ -13,7 +13,7 @@ import type { Usuario } from "@/types";
 import { Plus } from "lucide-react";
 
 const vazio = {
-  username: "", first_name: "", last_name: "", email: "", papel: "user" as "admin" | "user",
+  username: "", first_name: "", last_name: "", papel: "user" as "admin" | "user",
   telefone: "", departamento: "", password: "",
 };
 
@@ -79,7 +79,7 @@ export default function UsuariosPage() {
               <tr>
                 <th className="p-3">Nome</th>
                 <th className="hidden p-3 sm:table-cell">Usuário</th>
-                <th className="hidden p-3 md:table-cell">E-mail</th>
+                <th className="hidden p-3 md:table-cell">Telefone</th>
                 <th className="hidden p-3 md:table-cell">Departamento</th>
                 <th className="p-3">Papel</th>
                 <th className="p-3">Status</th>
@@ -90,7 +90,7 @@ export default function UsuariosPage() {
                 <tr key={u.id} className="border-b last:border-0">
                   <td className="p-3 font-medium">{u.first_name} {u.last_name}</td>
                   <td className="hidden p-3 sm:table-cell">{u.username}</td>
-                  <td className="hidden p-3 md:table-cell">{u.email}</td>
+                  <td className="hidden p-3 md:table-cell">{u.telefone}</td>
                   <td className="hidden p-3 md:table-cell">{u.departamento}</td>
                   <td className="p-3"><Badge variant={u.papel === "admin" ? "default" : "secondary"}>{u.papel === "admin" ? "Administrador" : "Usuário"}</Badge></td>
                   <td className="p-3">{u.is_active ? <Badge variant="livre">Ativo</Badge> : <Badge variant="destructive">Inativo</Badge>}</td>
@@ -123,11 +123,20 @@ export default function UsuariosPage() {
               <Input required value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
               <p className="text-xs text-muted-foreground">Sem espaços ou acentos — apenas letras, números e . _ + -/@ (ex.: joao.silva).</p>
             </div>
-            <div className="space-y-2"><Label>E-mail</Label><Input type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label>Telefone (WhatsApp)</Label><Input placeholder="5511999999999" value={form.telefone} onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Departamento</Label><Input value={form.departamento} onChange={(e) => setForm((f) => ({ ...f, departamento: e.target.value }))} /></div>
+            <div className="space-y-2">
+              <Label>Telefone (WhatsApp)</Label>
+              <Input
+                required
+                placeholder="5511999999999"
+                value={form.telefone}
+                onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Com DDI e DDD, só números (ex.: 5562999998888). É o único contato do usuário no sistema — usado no
+                botão &quot;Enviar WhatsApp&quot; das reservas.
+              </p>
             </div>
+            <div className="space-y-2"><Label>Departamento</Label><Input value={form.departamento} onChange={(e) => setForm((f) => ({ ...f, departamento: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label>Papel</Label>
               <Select value={form.papel} onValueChange={(v) => setForm((f) => ({ ...f, papel: v as "admin" | "user" }))}>

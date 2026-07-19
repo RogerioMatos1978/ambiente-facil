@@ -10,7 +10,7 @@ import { ReservationDetailsDialog } from "@/components/reservations/reservation-
 import { api } from "@/lib/api";
 import type { Reserva } from "@/types";
 import {
-  addMonths, addWeeks, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  addMonths, addWeeks, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay,
 } from "date-fns";
 
 export default function CalendarioPage() {
@@ -22,6 +22,10 @@ export default function CalendarioPage() {
   const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
 
   const carregarReservas = useCallback(async () => {
+    // Sempre normaliza para início/fim do dia: dataAtual pode conter a hora exata do
+    // momento em que a página foi aberta (new Date(), botão "Hoje"), e sem isso a janela
+    // filtrada começava "agora" em vez de meia-noite — escondendo reservas mais cedo no
+    // mesmo dia (ex.: abrir a agenda às 15h ocultava tudo que já tinha acontecido antes).
     let dataDe: Date, dataAte: Date;
     if (visao === "mes") {
       dataDe = startOfWeek(startOfMonth(dataAtual), { weekStartsOn: 1 });
@@ -30,11 +34,11 @@ export default function CalendarioPage() {
       dataDe = startOfWeek(dataAtual, { weekStartsOn: 1 });
       dataAte = endOfWeek(dataAtual, { weekStartsOn: 1 });
     } else if (visao === "agenda") {
-      dataDe = dataAtual;
-      dataAte = addMonths(dataAtual, 1);
+      dataDe = startOfDay(dataAtual);
+      dataAte = endOfDay(addMonths(dataAtual, 1));
     } else {
-      dataDe = dataAtual;
-      dataAte = addDays(dataAtual, 1);
+      dataDe = startOfDay(dataAtual);
+      dataAte = endOfDay(dataAtual);
     }
     const { data } = await api.get("/reservations/", {
       params: { data_de: dataDe.toISOString(), data_ate: dataAte.toISOString(), page_size: 300, ordering: "data_inicio" },

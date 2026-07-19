@@ -40,7 +40,7 @@ export function Topbar({ titulo }: { titulo: string }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{usuario?.email}</DropdownMenuLabel>
+            <DropdownMenuLabel>{usuario?.telefone || usuario?.username}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {

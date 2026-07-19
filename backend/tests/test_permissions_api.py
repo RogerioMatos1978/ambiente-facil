@@ -181,3 +181,36 @@ def test_outro_usuario_nao_pode_fazer_checkin_em_reserva_alheia(
     url = reverse("reserva-checkin", kwargs={"pk": reserva.id})
     response = cliente_autenticado_usuario.post(url, {}, format="json")
     assert response.status_code == 403
+
+
+def test_criar_usuario_exige_telefone_e_nao_tem_email(cliente_autenticado_admin):
+    url = reverse("user-list")
+
+    sem_telefone = cliente_autenticado_admin.post(
+        url,
+        {
+            "username": "sem.telefone",
+            "first_name": "Sem",
+            "last_name": "Telefone",
+            "papel": "user",
+            "password": "SenhaForte123!",
+        },
+        format="json",
+    )
+    assert sem_telefone.status_code == 400
+    assert "telefone" in sem_telefone.data["detalhes"]
+
+    com_telefone = cliente_autenticado_admin.post(
+        url,
+        {
+            "username": "com.telefone",
+            "first_name": "Com",
+            "last_name": "Telefone",
+            "telefone": "62999998888",
+            "papel": "user",
+            "password": "SenhaForte123!",
+        },
+        format="json",
+    )
+    assert com_telefone.status_code == 201
+    assert "email" not in com_telefone.data

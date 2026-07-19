@@ -106,3 +106,47 @@ def test_duracao_horas_e_display(ambiente, usuario_comum):
     reserva_45min.save()
     assert reserva_45min.duracao_horas == 0.75
     assert reserva_45min.duracao_display == "45min"
+
+
+def test_filtro_data_de_ate_inclui_reservas_que_cruzam_a_janela(
+    cliente_autenticado_admin, ambiente, admin_user
+):
+    """Uma reserva que começa antes da janela filtrada mas termina dentro dela (ou que
+    começa dentro dela mas termina depois) precisa aparecer — não só as totalmente
+    contidas no intervalo. Regressão do bug em que o calendário escondia reservas."""
+    from django.urls import reverse
+
+    from apps.reservations.models import Reserva
+
+    base = timezone.now().replace(minute=0, second=0, microsecond=0) + timedelta(days=1)
+
+    cruza_inicio_da_janela = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Começa antes, termina dentro",
+        data_inicio=base - timedelta(hours=1), data_fim=base + timedelta(hours=1),
+    )
+    cruza_fim_da_janela = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Começa dentro, termina depois",
+        data_inicio=base + timedelta(hours=5), data_fim=base + timedelta(hours=8),
+    )
+    totalmente_dentro = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Totalmente dentro",
+        data_inicio=base + timedelta(hours=2), data_fim=base + timedelta(hours=3),
+    )
+    totalmente_fora = Reserva.objects.create(
+        ambiente=ambiente, solicitante=admin_user, titulo="Totalmente fora",
+        data_inicio=base + timedelta(days=10), data_fim=base + timedelta(days=10, hours=1),
+    )
+
+    janela_de = base
+    janela_ate = base + timedelta(hours=6)
+
+    url = reverse("reserva-list")
+    resposta = cliente_autenticado_admin.get(
+        url, {"data_de": janela_de.isoformat(), "data_ate": janela_ate.isoformat()}
+    )
+    ids_retornados = {r["id"] for r in resposta.data["results"]}
+
+    assert cruza_inicio_da_janela.id in ids_retornados
+    assert cruza_fim_da_janela.id in ids_retornados
+    assert totalmente_dentro.id in ids_retornados
+    assert totalmente_fora.id not in ids_retornados

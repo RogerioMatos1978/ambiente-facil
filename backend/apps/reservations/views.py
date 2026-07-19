@@ -187,7 +187,6 @@ class ReservaViewSet(viewsets.ModelViewSet):
             data_inicio=agora,
             data_fim=agora + timezone.timedelta(minutes=duracao),
             status=StatusReserva.CONFIRMADA,
-            notificar_email=False,
         )
         try:
             reserva.save()

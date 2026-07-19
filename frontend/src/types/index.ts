@@ -5,7 +5,6 @@ export interface Usuario {
   username: string;
   first_name: string;
   last_name: string;
-  email: string;
   papel: Papel;
   telefone: string;
   departamento: string;
@@ -53,7 +52,6 @@ export interface Reserva {
   motivo_cancelamento: string;
   cancelado_por: number | null;
   cancelado_em: string | null;
-  notificar_email: boolean;
   checkin_confirmado_em: string | null;
   precisa_checkin: boolean;
   prazo_checkin: string;

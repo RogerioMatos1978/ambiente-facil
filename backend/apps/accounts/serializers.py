@@ -14,7 +14,6 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "first_name",
             "last_name",
-            "email",
             "papel",
             "telefone",
             "departamento",
@@ -27,6 +26,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
+    # O sistema não usa e-mail: o telefone é o dado de contato obrigatório do usuário
+    # (usado para o botão "Enviar WhatsApp" nas reservas).
+    telefone = serializers.CharField(required=True, allow_blank=False)
 
     class Meta:
         model = User
@@ -35,7 +37,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "username",
             "first_name",
             "last_name",
-            "email",
             "papel",
             "telefone",
             "departamento",

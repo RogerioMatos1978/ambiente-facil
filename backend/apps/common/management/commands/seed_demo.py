@@ -22,7 +22,6 @@ class Command(BaseCommand):
         admin, criado = User.objects.get_or_create(
             username="admin",
             defaults=dict(
-                email="admin@ambientefacil.local",
                 papel="admin",
                 first_name="Administrador",
                 last_name="Geral",
@@ -39,7 +38,6 @@ class Command(BaseCommand):
         usuario, criado = User.objects.get_or_create(
             username="professor",
             defaults=dict(
-                email="professor@ambientefacil.local",
                 papel="user",
                 first_name="Ana",
                 last_name="Professora",

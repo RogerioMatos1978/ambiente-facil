@@ -2,8 +2,9 @@
 
 Sistema web para gerenciamento e agendamento de ambientes institucionais (salas de aula,
 auditórios, laboratórios e salas de reunião), com prevenção automática de conflitos de
-horário, painel de disponibilidade em tempo real, notificações por e-mail/WhatsApp,
-auditoria completa e exportação de relatórios.
+horário, painel de disponibilidade em tempo real, notificação por WhatsApp, auditoria
+completa e exportação de relatórios. O sistema não usa e-mail: o telefone (WhatsApp) é o
+único contato do usuário e o único canal de notificação.
 
 ## Stack
 
@@ -16,21 +17,21 @@ auditoria completa e exportação de relatórios.
 
 - Autenticação JWT com dois perfis (Administrador e Usuário) e permissões RBAC em cada endpoint.
 - Cadastro de ambientes (tipo, capacidade, localização, recursos, foto).
-- Cadastro de usuários (admin) com telefone para WhatsApp e departamento.
+- Cadastro de usuários (admin) com telefone (WhatsApp, obrigatório — único contato do usuário; não há campo de e-mail no sistema) e departamento.
 - Reservas com **prevenção automática de conflitos de horário** (validada no modelo e na API).
 - A lista de reservas é uma **agenda compartilhada**: qualquer usuário autenticado vê todas as reservas de todos os ambientes (não só as próprias) — inclusive nas exportações e no relatório.
+- O filtro de período (`data_de`/`data_ate`, usado no calendário, no relatório e nas exportações) considera reservas que **se sobrepõem** à janela pesquisada, não só as totalmente contidas nela — corrige um bug em que reservas que cruzavam o início/fim do período filtrado somem do calendário.
 - Qualquer usuário pode solicitar (criar) uma reserva; **editar, excluir ou cancelar reservas já existentes é exclusivo de administradores**. Reservas cujo período já terminou são concluídas automaticamente e ficam somente leitura (ver seção "Check-in automático e reserva rápida").
 - Cancelamento de reservas com motivo e histórico de quem cancelou.
 - Painel de ambientes livres/ocupados **em tempo real via WebSocket** (Django Channels + Redis).
 - Calendário no frontend com visões **Dia / Semana / Mês / Agenda**, inspirado no Outlook e Google Calendar.
 - Dashboard com indicadores (KPIs) e gráfico de reservas da semana.
-- Notificação automática por e-mail ao criar/confirmar/cancelar uma reserva.
 - Botão "Enviar WhatsApp" que monta a mensagem e abre o **aplicativo do WhatsApp instalado e logado no computador** (esquema `whatsapp://send`, não o WhatsApp Web) — requer o WhatsApp Desktop instalado na máquina que aciona o botão.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
 - Exportação de reservas em **CSV, Excel (XLSX) e PDF**.
-- Toda reserva recebe um **número de controle sequencial** (`RES-000123`, derivado do id) — aparece na mensagem de WhatsApp, no e-mail automático, na tela de detalhes e nas exportações CSV/Excel/PDF.
-- Toda reserva mostra sua **duração** (ex.: `1h30min`) — na lista de reservas, na tela de detalhes, no calendário, na página de check-in, na mensagem de WhatsApp, no e-mail automático e nas exportações CSV/Excel/PDF.
+- Toda reserva recebe um **número de controle sequencial** (`RES-000123`, derivado do id) — aparece na mensagem de WhatsApp, na tela de detalhes e nas exportações CSV/Excel/PDF.
+- Toda reserva mostra sua **duração** (ex.: `1h30min`) — na lista de reservas, na tela de detalhes, no calendário, na página de check-in, na mensagem de WhatsApp e nas exportações CSV/Excel/PDF.
 - Página de **Relatórios** (`/relatorios`): KPIs (total, confirmadas, taxa de no-show, duração média), gráfico de reservas por dia, reservas por status, ranking de ambientes mais reservados e (para administradores) ranking de quem mais reservou — tudo filtrável por período/ambiente/status e exportável em CSV/Excel/PDF.
 - Tema claro/escuro (persistido) em todo o frontend.
 - **Seletor de cores institucionais** (ícone de paleta na barra superior): 5 temas baseados no Manual de Marcas do Sistema FIEG (SESI/SENAI/IEL Goiás, ago/2024). O padrão "SESI SENAI" usa o azul institucional `#164194`; os temas SESI (`#52AE32` verde), SENAI (`#E84910` laranja), IEL (`#6CC2BA` verde-água) e Sistema FIEG (`#008BD2` azul claro) trocam a cor dominante do sistema inteiro (botões, menu ativo, badges, foco) para essa cor de detalhe da marca escolhida. Funciona em conjunto com o tema claro/escuro e a escolha fica salva no navegador.
@@ -138,7 +139,7 @@ ambiente-facil/
 │   │   ├── environments/    # ambientes + WebSocket (painel em tempo real)
 │   │   ├── reservations/    # reservas + prevenção de conflitos
 │   │   ├── audit/           # logs de auditoria
-│   │   ├── notifications/   # e-mail e WhatsApp
+│   │   ├── notifications/   # mensagem/link do WhatsApp
 │   │   └── common/          # permissões, exportações, middleware, exceções
 │   ├── config/               # settings (base/dev/test/prod), urls, asgi/wsgi
 │   └── tests/
@@ -186,10 +187,7 @@ o lugar certo.
 ## Arquitetura e decisões
 
 O backend segue uma separação por apps de domínio (accounts, environments, reservations,
-audit, notifications) desacoplados via Django signals — por exemplo, `reservations` não conhece
-diretamente `notifications`; a notificação por e-mail e o evento de WebSocket são disparados
-por signals ao salvar uma `Reserva`. Isso mantém os apps coesos e facilita testes e evolução
-(Clean Architecture / SOLID aplicados de forma pragmática ao Django).
+audit, notifications) desacoplados entre si — por exemplo, `reservations` não conhece diretamente `notifications`, ele só monta a mensagem/link do WhatsApp sob demanda quando o botão é clicado no frontend. Não há notificação automática disparada por signals: o sistema não usa e-mail e o WhatsApp é sempre uma ação manual do usuário. Isso mantém os apps coesos e facilita testes e evolução (Clean Architecture / SOLID aplicados de forma pragmática ao Django).
 
 A prevenção de conflitos de horário é garantida em duas camadas: no método `Reserva.clean()`
 (regra de negócio, testável isoladamente) e refletida na resposta da API (mensagem de erro clara
