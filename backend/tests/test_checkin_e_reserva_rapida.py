@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from apps.reservations.models import Reserva, StatusReserva
 
-from .utils_tempo import horario_futuro, horario_passado
+from .utils_tempo import agora_fixo_no_horario_permitido, horario_futuro, horario_passado
 
 pytestmark = pytest.mark.django_db
 
@@ -27,40 +27,43 @@ def ambiente_com_checkin(db):
 
 
 def test_checkin_confirma_presenca(cliente_autenticado_usuario, usuario_comum, ambiente_com_checkin):
-    inicio = timezone.now() - timedelta(minutes=5)
-    fim = inicio + timedelta(hours=1)
-    reserva = Reserva.objects.create(
-        ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Aula prática",
-        data_inicio=inicio, data_fim=fim,
-    )
-    assert reserva.precisa_checkin is True
+    with agora_fixo_no_horario_permitido() as agora:
+        inicio = agora - timedelta(minutes=5)
+        fim = inicio + timedelta(hours=1)
+        reserva = Reserva.objects.create(
+            ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Aula prática",
+            data_inicio=inicio, data_fim=fim,
+        )
+        assert reserva.precisa_checkin is True
 
-    resposta = cliente_autenticado_usuario.post(f"/api/v1/reservations/{reserva.id}/checkin/")
-    assert resposta.status_code == 200
-    reserva.refresh_from_db()
-    assert reserva.checkin_confirmado_em is not None
-    assert reserva.precisa_checkin is False
+        resposta = cliente_autenticado_usuario.post(f"/api/v1/reservations/{reserva.id}/checkin/")
+        assert resposta.status_code == 200
+        reserva.refresh_from_db()
+        assert reserva.checkin_confirmado_em is not None
+        assert reserva.precisa_checkin is False
 
 
 def test_checkin_duplicado_e_rejeitado(cliente_autenticado_usuario, usuario_comum, ambiente_com_checkin):
-    inicio = timezone.now() - timedelta(minutes=5)
-    reserva = Reserva.objects.create(
-        ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Aula prática",
-        data_inicio=inicio, data_fim=inicio + timedelta(hours=1), checkin_confirmado_em=timezone.now(),
-    )
-    resposta = cliente_autenticado_usuario.post(f"/api/v1/reservations/{reserva.id}/checkin/")
-    assert resposta.status_code == 400
+    with agora_fixo_no_horario_permitido() as agora:
+        inicio = agora - timedelta(minutes=5)
+        reserva = Reserva.objects.create(
+            ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Aula prática",
+            data_inicio=inicio, data_fim=inicio + timedelta(hours=1), checkin_confirmado_em=agora,
+        )
+        resposta = cliente_autenticado_usuario.post(f"/api/v1/reservations/{reserva.id}/checkin/")
+        assert resposta.status_code == 400
 
 
 def test_liberar_no_show_expira_reserva_sem_checkin(usuario_comum, ambiente_com_checkin):
     # Reserva começou há 20 minutos (tolerância é 15) e ninguém confirmou check-in.
-    inicio = timezone.now() - timedelta(minutes=20)
-    reserva = Reserva.objects.create(
-        ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Reunião",
-        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
-    )
+    with agora_fixo_no_horario_permitido() as agora:
+        inicio = agora - timedelta(minutes=20)
+        reserva = Reserva.objects.create(
+            ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Reunião",
+            data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+        )
 
-    call_command("liberar_no_show")
+        call_command("liberar_no_show")
 
     reserva.refresh_from_db()
     assert reserva.status == StatusReserva.EXPIRADA
@@ -68,13 +71,14 @@ def test_liberar_no_show_expira_reserva_sem_checkin(usuario_comum, ambiente_com_
 
 
 def test_liberar_no_show_nao_afeta_reserva_com_checkin(usuario_comum, ambiente_com_checkin):
-    inicio = timezone.now() - timedelta(minutes=20)
-    reserva = Reserva.objects.create(
-        ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Reunião",
-        data_inicio=inicio, data_fim=inicio + timedelta(hours=1), checkin_confirmado_em=timezone.now(),
-    )
+    with agora_fixo_no_horario_permitido() as agora:
+        inicio = agora - timedelta(minutes=20)
+        reserva = Reserva.objects.create(
+            ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Reunião",
+            data_inicio=inicio, data_fim=inicio + timedelta(hours=1), checkin_confirmado_em=agora,
+        )
 
-    call_command("liberar_no_show")
+        call_command("liberar_no_show")
 
     reserva.refresh_from_db()
     assert reserva.status == StatusReserva.CONFIRMADA
@@ -82,13 +86,14 @@ def test_liberar_no_show_nao_afeta_reserva_com_checkin(usuario_comum, ambiente_c
 
 def test_liberar_no_show_respeita_tolerancia(usuario_comum, ambiente_com_checkin):
     # Só 5 minutos se passaram, tolerância é 15 — ainda não deve expirar.
-    inicio = timezone.now() - timedelta(minutes=5)
-    reserva = Reserva.objects.create(
-        ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Reunião",
-        data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
-    )
+    with agora_fixo_no_horario_permitido() as agora:
+        inicio = agora - timedelta(minutes=5)
+        reserva = Reserva.objects.create(
+            ambiente=ambiente_com_checkin, solicitante=usuario_comum, titulo="Reunião",
+            data_inicio=inicio, data_fim=inicio + timedelta(hours=1),
+        )
 
-    call_command("liberar_no_show")
+        call_command("liberar_no_show")
 
     reserva.refresh_from_db()
     assert reserva.status == StatusReserva.CONFIRMADA

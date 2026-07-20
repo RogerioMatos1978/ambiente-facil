@@ -31,7 +31,7 @@ completa e exportação de relatórios. O sistema não usa e-mail: o telefone (W
 - Calendário no frontend com visões **Dia / Semana / Mês / Agenda**, inspirado no Outlook e Google Calendar.
 - Dashboard com indicadores (KPIs) e gráfico de reservas da semana.
 - Botão "Enviar WhatsApp" (só aparece em reservas com **status Confirmada** — o backend também recusa a chamada para os demais status) que monta a mensagem (confirmação da reserva + instruções da guarita) e abre um link **`https://wa.me/...`** em nova aba — funciona com o WhatsApp Desktop instalado ou, na falta dele, com o WhatsApp Web pelo navegador. A mensagem vai para o telefone de **quem vai efetivamente usar a sala** ("Reservado para"), não para quem apenas fez a reserva no sistema — cai para o telefone do solicitante só se o do responsável não tiver sido informado (reservas antigas).
-- A lista de **Reservas** mostra também o **status da chave** do ambiente (Disponível / Ocupada / Devolvida), refletindo em tempo real o que está acontecendo na Guarita de Chaves.
+- A lista de **Reservas** mostra também o **status da chave** do ambiente (Disponível / Ocupada), refletindo em tempo real o que está acontecendo na Guarita de Chaves.
 - A tela de **Reservas** vem ordenada pelo **Nº de controle, do maior para o menor** (mais recente primeiro) e filtrada por **status Confirmada** por padrão; tem campos de busca (título/descrição/ambiente), filtro por ambiente, status e período, e um botão para limpar os filtros — os mesmos filtros valem para as exportações CSV/Excel/PDF dessa tela.
 - Auditoria completa: toda criação, atualização, cancelamento e exportação fica registrada
   (usuário, IP, data/hora), além do histórico de alterações de cada registro (django-simple-history).
